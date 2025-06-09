@@ -183,3 +183,12 @@ data/ballers_app.db*
 assets/
 logs/
 backups/
+.streamlit/secrets.toml
+.streamlit/secrets_local.toml
+
+#  Proteger archivos de test
+test_supabase.py
+test_both_supabase.py
+test_correct_supabase.py
+diagnose_supabase.py
+verify_production_config.py

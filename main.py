@@ -11,7 +11,10 @@ from controllers.sync_coordinator import is_auto_sync_running, start_auto_sync
 from controllers.db import initialize_database 
 
 # Importar configuración
-from config import STYLES_DIR, APP_NAME, APP_ICON, CSS_FILE
+from config import STYLES_DIR, APP_NAME, APP_ICON, CSS_FILE, log_config_info
+
+# 🆕 NUEVO: Registrar información del entorno al inicio
+log_config_info()
 
 # Configuración de la página
 st.set_page_config(
