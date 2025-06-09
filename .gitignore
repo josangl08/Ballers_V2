@@ -189,5 +189,5 @@ backups/
 
 
 #  Proteger archivos de test
-test_fix_calendar.py
-verify_config.py
+
+verify_deployment.py

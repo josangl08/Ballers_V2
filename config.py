@@ -1,7 +1,6 @@
 # config.py
 """
-Configuración unificada para Ballers App.
-Prioriza producción (Streamlit Cloud + Supabase) con fallback a desarrollo local.
+Configuración unificada para Ballers App - SIMPLIFICADA
 """
 import os
 import datetime as dt
@@ -10,184 +9,98 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # =============================================================================
-# DETECCIÓN DE ENTORNO CORREGIDA
+# DETECCIÓN DE ENTORNO SIMPLIFICADA
 # =============================================================================
 
-def is_production():
-    """
-    Detecta si estamos en producción de forma MÁS ESTRICTA.
-    Solo considera producción si hay evidencia clara de Streamlit Cloud.
-    """
-    # Método 1: Variables de entorno específicas de Streamlit Cloud
-    streamlit_cloud_vars = [
-        "STREAMLIT_SHARING", 
-        "STREAMLIT_CLOUD"
-    ]
-    
-    if any(var in os.environ for var in streamlit_cloud_vars):
-        print(f"🌍 Producción detectada por variable: {[var for var in streamlit_cloud_vars if var in os.environ]}")
-        return True
-    
-    # Método 2: STREAMLIT_SERVER_PORT solo si no hay archivo .env
-    if "STREAMLIT_SERVER_PORT" in os.environ and not os.path.exists(".env"):
-        print("🌍 Producción detectada por STREAMLIT_SERVER_PORT (sin .env local)")
-        return True
-    
-    # Método 3: Verificar si hay secrets de Streamlit disponibles (MÁS ESTRICTO)
-    try:
-        if hasattr(st, 'secrets'):
-            # Verificar que tenga secrets específicos de producción
-            if (hasattr(st.secrets, 'database') and 
-                hasattr(st.secrets, 'google') and
-                not os.path.exists(".env")):  # Y no hay .env local
-                print("🌍 Producción detectada por secrets (sin .env local)")
-                return True
-    except:
-        pass
-    
-    # Por defecto: desarrollo
-    print("💻 Desarrollo detectado")
-    return False
-
-IS_PRODUCTION = is_production()
+# En Streamlit Cloud, definir ENVIRONMENT=production en secrets
+IS_PRODUCTION = os.getenv("ENVIRONMENT", "development") == "production"
 IS_DEVELOPMENT = not IS_PRODUCTION
 
 # Cargar .env solo en desarrollo
 if IS_DEVELOPMENT:
     load_dotenv()
     print("📁 Archivo .env cargado para desarrollo")
+else:
+    print("🌍 Modo producción activado")
 
 # =============================================================================
 # CONFIGURACIÓN DE BASE DE DATOS
 # =============================================================================
 
 def get_database_url():
-    """Obtiene URL de base de datos (PostgreSQL en producción, SQLite en desarrollo)."""
+    """Obtiene URL de base de datos."""
     if IS_PRODUCTION:
-        try:
-            # Método 1: DATABASE_URL directo de secrets
-            if hasattr(st, 'secrets') and hasattr(st.secrets, 'DATABASE_URL'):
-                return st.secrets["DATABASE_URL"]
-        except:
-            pass
-        
-        try:
-            # Método 2: Construir desde secrets de database
-            if hasattr(st, 'secrets') and hasattr(st.secrets, 'database'):
-                return (
-                    f"postgresql://{st.secrets['database']['username']}:"
-                    f"{st.secrets['database']['password']}@"
-                    f"{st.secrets['database']['host']}:"
-                    f"{st.secrets['database']['port']}/"
-                    f"{st.secrets['database']['database']}"
-                )
-        except:
-            pass
-        
-        # Método 3: Variable de entorno DATABASE_URL
-        db_url = os.getenv("DATABASE_URL")
-        if db_url:
-            return db_url
-        
-        # Fallback si falla todo
-        raise ValueError("No se pudo obtener DATABASE_URL en producción")
+        # En producción, buscar en secrets o env
+        if hasattr(st, 'secrets') and 'DATABASE_URL' in st.secrets:
+            return st.secrets["DATABASE_URL"]
+        return os.getenv("DATABASE_URL", "")
     else:
-        # Desarrollo: SQLite local
-        return f"sqlite:///{os.getenv('DATABASE_PATH', 'data/ballers_app.db')}"
+        # En desarrollo, usar SQLite
+        db_path = os.getenv('DATABASE_PATH', 'data/ballers_app.db')
+        return f"sqlite:///{db_path}"
 
 DATABASE_URL = get_database_url()
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL no configurado")
 
 # =============================================================================
 # CONFIGURACIÓN DE GOOGLE APIS
 # =============================================================================
 
-def get_calendar_id():
-    """Obtiene ID del calendario de Google."""
+def get_google_config():
+    """Obtiene configuración de Google unificada."""
+    config = {}
+    
     if IS_PRODUCTION:
-        try:
-            if hasattr(st, 'secrets') and hasattr(st.secrets, 'google'):
-                return st.secrets["google"]["calendar_id"]
-        except:
-            pass
-        # Fallback producción
-        return "info@ballersbangkok.com"
+        # Producción: usar secrets de Streamlit
+        if hasattr(st, 'secrets') and 'google' in st.secrets:
+            config['calendar_id'] = st.secrets.google.get('calendar_id', 'info@ballersbangkok.com')
+            config['sheet_id'] = st.secrets.google.get('accounting_sheet_id', '1Lf1lpplLOrewG4V-8949Ny9PLg6nX5n9_GgIWtQWqQY')
+            
+            # Construir credenciales desde secrets
+            config['credentials'] = {
+                "type": st.secrets.google.type,
+                "project_id": st.secrets.google.project_id,
+                "private_key_id": st.secrets.google.private_key_id,
+                "private_key": st.secrets.google.private_key.replace('\\n', '\n'),  # Fix newlines
+                "client_email": st.secrets.google.client_email,
+                "client_id": st.secrets.google.client_id,
+                "auth_uri": st.secrets.google.auth_uri,
+                "token_uri": st.secrets.google.token_uri,
+                "auth_provider_x509_cert_url": st.secrets.google.auth_provider_x509_cert_url,
+                "client_x509_cert_url": st.secrets.google.client_x509_cert_url,
+                "universe_domain": st.secrets.google.get("universe_domain", "googleapis.com")
+            }
+        else:
+            raise ValueError("Secrets de Google no encontrados en producción")
     else:
-        return os.getenv("CALENDAR_ID", "josangl08@usal.es")
+        # Desarrollo: usar .env
+        config['calendar_id'] = os.getenv('CALENDAR_ID', 'josangl08@usal.es')
+        config['sheet_id'] = os.getenv('ACCOUNTING_SHEET_ID', '1ZH53dleTQRzt6Tvhobi7cLwoVDaDfuOtLe3UdvtRVR0')
+        config['credentials'] = None  # Usar archivo local
+        config['service_account_path'] = os.getenv('GOOGLE_SA_PATH', 'data/google_service_account.json')
+    
+    return config
 
-def get_accounting_sheet_id():
-    """Obtiene ID de la hoja de cálculo de contabilidad."""
-    if IS_PRODUCTION:
-        try:
-            if hasattr(st, 'secrets') and hasattr(st.secrets, 'google'):
-                return st.secrets["google"]["accounting_sheet_id"]
-        except:
-            pass
-        # Fallback producción
-        return "1Lf1lpplLOrewG4V-8949Ny9PLg6nX5n9_GgIWtQWqQY"
-    else:
-        return os.getenv("ACCOUNTING_SHEET_ID", "1ZH53dleTQRzt6Tvhobi7cLwoVDaDfuOtLe3UdvtRVR0")
-
-def get_google_credentials():
-    """Obtiene credenciales de Google (secrets en producción, archivo en desarrollo)."""
-    if IS_PRODUCTION:
-        try:
-            if hasattr(st, 'secrets') and hasattr(st.secrets, 'google'):
-                return {
-                    "type": st.secrets["google"]["type"],
-                    "project_id": st.secrets["google"]["project_id"],
-                    "private_key_id": st.secrets["google"]["private_key_id"],
-                    "private_key": st.secrets["google"]["private_key"],
-                    "client_email": st.secrets["google"]["client_email"],
-                    "client_id": st.secrets["google"]["client_id"],
-                    "auth_uri": st.secrets["google"]["auth_uri"],
-                    "token_uri": st.secrets["google"]["token_uri"],
-                    "auth_provider_x509_cert_url": st.secrets["google"]["auth_provider_x509_cert_url"],
-                    "client_x509_cert_url": st.secrets["google"]["client_x509_cert_url"],
-                    "universe_domain": st.secrets["google"]["universe_domain"]
-                }
-        except Exception as e:
-            print(f"⚠️ Error leyendo credenciales de Google desde secrets: {e}")
-        return None
-    else:
-        # Desarrollo: usar archivo local
-        return None
-
-# Variables de configuración
-CALENDAR_ID = get_calendar_id()
-ACCOUNTING_SHEET_ID = get_accounting_sheet_id()
-GOOGLE_CREDENTIALS = get_google_credentials()
-
-print(f"🔧 CONFIG DEBUG - CALENDAR_ID: {CALENDAR_ID}")  # Para debugging
+# Obtener configuración
+try:
+    google_config = get_google_config()
+    CALENDAR_ID = google_config['calendar_id']
+    ACCOUNTING_SHEET_ID = google_config['sheet_id']
+    GOOGLE_CREDENTIALS = google_config.get('credentials')
+    GOOGLE_SA_PATH = google_config.get('service_account_path')
+    
+    print(f"✅ Google Config: Calendar={CALENDAR_ID[:20]}..., Sheet={ACCOUNTING_SHEET_ID[:20]}...")
+except Exception as e:
+    print(f"❌ Error configurando Google APIs: {e}")
+    # Valores por defecto
+    CALENDAR_ID = "josangl08@usal.es"
+    ACCOUNTING_SHEET_ID = "1ZH53dleTQRzt6Tvhobi7cLwoVDaDfuOtLe3UdvtRVR0"
+    GOOGLE_CREDENTIALS = None
+    GOOGLE_SA_PATH = "data/google_service_account.json"
 
 # =============================================================================
-# CONFIGURACIÓN DE LA APLICACIÓN
-# =============================================================================
-
-def get_session_secret():
-    """Obtiene clave secreta para sesiones."""
-    if IS_PRODUCTION:
-        try:
-            if hasattr(st, 'secrets') and hasattr(st.secrets, 'app'):
-                return st.secrets["app"]["session_secret"]
-        except:
-            pass
-        # Fallback producción
-        return "ballers-app-production-2025-secure-key-Q4FAATxa4mw9sZk"
-    else:
-        return os.getenv("SESSION_SECRET", "your-default-secret-key")
-
-def is_debug_mode():
-    """Verifica si está en modo debug."""
-    if IS_PRODUCTION:
-        return False  # Nunca debug en producción
-    else:
-        return os.getenv("DEBUG", "False") == "True"
-
-SESSION_SECRET = get_session_secret()
-DEBUG = is_debug_mode()
-
-# =============================================================================
-# DIRECTORIOS Y RUTAS
+# RESTO DE CONFIGURACIONES (sin cambios)
 # =============================================================================
 
 BASE_DIR = Path(__file__).parent
@@ -205,39 +118,32 @@ if IS_DEVELOPMENT:
 # Rutas específicas según entorno
 if IS_DEVELOPMENT:
     DATABASE_PATH = os.path.join(DATA_DIR, "ballers_app.db")
-    GOOGLE_SA_PATH = os.getenv("GOOGLE_SA_PATH", "data/google_service_account.json")
     DEFAULT_PROFILE_PHOTO = os.path.join(ASSETS_DIR, "default_profile.png")
     CSS_FILE = os.path.join(STYLES_DIR, "style.css")
 else:
-    DATABASE_PATH = None  # Usamos DATABASE_URL
-    GOOGLE_SA_PATH = None  # Usamos GOOGLE_CREDENTIALS
+    DATABASE_PATH = None
     DEFAULT_PROFILE_PHOTO = "assets/profile_photos/default_profile.png"
     CSS_FILE = "styles/style.css"
 
-# =============================================================================
-# CONFIGURACIÓN DE STREAMLIT
-# =============================================================================
-
+# Configuración de la aplicación
 APP_NAME = "Ballers App"
 APP_ICON = "assets/ballers/favicon.ico"
+SESSION_SECRET = os.getenv("SESSION_SECRET", "ballers-app-default-secret-key")
+DEBUG = os.getenv("DEBUG", "False") == "True"
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-
-# =============================================================================
-# CONFIGURACIÓN DE NEGOCIO
-# =============================================================================
 
 # Archivos permitidos
 ALLOWED_PHOTO_EXTENSIONS = ["jpg", "jpeg", "png"]
 MAX_PHOTO_SIZE_MB = 2
 
 # Constantes de sesiones
-SESSION_DURATION_DEFAULT = 60  # minutos
+SESSION_DURATION_DEFAULT = 60
 
 # Colores para Calendar
 CALENDAR_COLORS = {
-    "scheduled": {"google": "9",  "hex": "#1E88E5"},  # azul
-    "completed": {"google": "2",  "hex": "#4CAF50"},  # verde
-    "canceled":  {"google": "11", "hex": "#F44336"},  # rojo
+    "scheduled": {"google": "9",  "hex": "#1E88E5"},
+    "completed": {"google": "2",  "hex": "#4CAF50"},
+    "canceled":  {"google": "11", "hex": "#F44336"},
 }
 
 # Horarios de trabajo
@@ -253,30 +159,19 @@ WORK_HOURS_FLEXIBLE = {
 
 SESSION_DURATION = {
     "min_minutes": 60,
-    "max_minutes": 120,  # formularios
-    "max_minutes_import": 180  # imports
+    "max_minutes": 120,
+    "max_minutes_import": 180
 }
 
-# =============================================================================
-# FUNCIÓN DE LOGGING (NO SE EJECUTA AUTOMÁTICAMENTE)
-# =============================================================================
-
 def log_config_info():
-    """
-    Muestra información de configuración al inicio.
-    IMPORTANTE: Esta función NO se ejecuta automáticamente al importar.
-    Debe ser llamada explícitamente desde main.py.
-    """
+    """Muestra información de configuración al inicio."""
     env_name = "PRODUCTION" if IS_PRODUCTION else "DEVELOPMENT"
     db_type = "PostgreSQL (Supabase)" if IS_PRODUCTION else "SQLite (Local)"
     
-    print(f"🚀 Ballers App starting in {env_name} mode")
+    print("="*50)
+    print(f"🚀 Ballers App - {env_name}")
     print(f"💾 Database: {db_type}")
-    print(f"📅 Calendar ID: {CALENDAR_ID}")
-    print(f"📊 Sheet ID: {ACCOUNTING_SHEET_ID}")
-    print(f"🔐 Debug mode: {DEBUG}")
-    
-    if IS_PRODUCTION:
-        print("✅ Using Streamlit secrets for configuration")
-    else:
-        print("💻 Using .env file for configuration")
+    print(f"📅 Calendar: {CALENDAR_ID}")
+    print(f"📊 Sheet: {ACCOUNTING_SHEET_ID}")
+    print(f"🔐 Debug: {DEBUG}")
+    print("="*50)

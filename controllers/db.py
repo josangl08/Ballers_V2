@@ -2,7 +2,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session as SQLAlchemySession
 from models import Base
-from config import DATABASE_PATH
+from config import DATABASE_URL, DATABASE_PATH, IS_PRODUCTION, IS_DEVELOPMENT
 import os
 import streamlit as st
 from typing import Optional
@@ -22,42 +22,21 @@ def initialize_database() -> bool:
     
     try:
         if _engine is None:
-            # 🔧 PRIORIDAD: DATABASE_URL desde múltiples fuentes
-            database_url = None
+            # Usar DATABASE_URL ya procesado desde config.py
+            print(f"🔗 Conectando a: {DATABASE_URL[:50]}...")
             
-            # 1. Streamlit Secrets (para Streamlit Cloud) - PRIORIDAD MÁXIMA
-            try:
-                if hasattr(st, 'secrets') and hasattr(st.secrets, 'DATABASE_URL'):
-                    database_url = st.secrets.DATABASE_URL
-                    print("🔗 Usando DATABASE_URL de Streamlit secrets")
-            except Exception as e:
-                print(f"⚠️ No se pudo leer DATABASE_URL de secrets: {e}")
+            _engine = create_engine(DATABASE_URL)
             
-            # 2. Variable de entorno (.env) - SEGUNDA PRIORIDAD
-            if not database_url:
-                database_url = os.getenv("DATABASE_URL")
-                if database_url:
-                    print("🔗 Usando DATABASE_URL de variable de entorno")
-            
-            # 3. Decidir conexión
-            if database_url:
-                # 🚀 CONEXIÓN A SUPABASE (PRODUCCIÓN)
-                _engine = create_engine(database_url)
-                print("✅ Conectando a Supabase (PostgreSQL) - PRODUCCIÓN")
-            else:
-                # 🔧 CONEXIÓN LOCAL (DESARROLLO)
-                # Validar que DATABASE_PATH no sea None
-                if not DATABASE_PATH:
-                    raise ValueError("DATABASE_PATH no está configurado en config.py")
-                
-                _engine = create_engine(f"sqlite:///{DATABASE_PATH}")
-                print("⚠️ Conectando a SQLite local - DESARROLLO")
-                
-                # Solo crear tablas para SQLite local
+            # Solo crear tablas si es SQLite local Y no existe
+            if IS_DEVELOPMENT and DATABASE_PATH:
                 if not os.path.exists(DATABASE_PATH) or os.path.getsize(DATABASE_PATH) == 0:
                     print("🔧 Creando nueva base de datos local...")
                     Base.metadata.create_all(_engine)
                     print("✅ Tablas creadas exitosamente")
+                else:
+                    print("✅ Usando base de datos local existente")
+            elif IS_PRODUCTION:
+                print("✅ Conectado a base de datos de producción (Supabase)")
             
             _Session = sessionmaker(bind=_engine)
             print("✅ Base de datos inicializada correctamente")
@@ -91,8 +70,6 @@ def get_db_session() -> SQLAlchemySession:
                 "Verifica que el archivo de configuración y los permisos sean correctos."
             )
     
-    # Esta verificación nunca debería fallar después de initialize_database() exitoso,
-    # pero la incluimos para satisfacer a Pylance
     if _Session is None:
         raise RuntimeError("Error crítico: _Session sigue siendo None después de la inicialización")
     
@@ -116,22 +93,18 @@ def get_database_info() -> dict:
     Returns:
         dict: Información sobre la base de datos
     """
-    # 🔧 FIX: Validar DATABASE_PATH antes de usarlo
-    if DATABASE_PATH is None:
-        return {
-            "database_path": "No configurado",
-            "exists": False,
-            "size_bytes": 0,
-            "is_initialized": _Session is not None,
-            "engine_active": _engine is not None,
-            "error": "DATABASE_PATH no está configurado"
-        }
-    
-    # Ahora DATABASE_PATH es válido (no None)
-    return {
-        "database_path": DATABASE_PATH,
-        "exists": os.path.exists(DATABASE_PATH),
-        "size_bytes": os.path.getsize(DATABASE_PATH) if os.path.exists(DATABASE_PATH) else 0,
+    info = {
+        "database_url": DATABASE_URL[:50] + "..." if len(DATABASE_URL) > 50 else DATABASE_URL,
+        "is_production": IS_PRODUCTION,
+        "is_development": IS_DEVELOPMENT,
         "is_initialized": _Session is not None,
         "engine_active": _engine is not None
     }
+    
+    # Info adicional para desarrollo
+    if IS_DEVELOPMENT and DATABASE_PATH:
+        info["database_path"] = DATABASE_PATH
+        info["exists"] = os.path.exists(DATABASE_PATH)
+        info["size_bytes"] = os.path.getsize(DATABASE_PATH) if os.path.exists(DATABASE_PATH) else 0
+    
+    return info
