@@ -197,3 +197,5 @@ verify_production_config.py
 simple_verificacion.py
 test_final_local.py
 verify_secrets_format.py
+create_admin_user.py
+diagnostico_login.py

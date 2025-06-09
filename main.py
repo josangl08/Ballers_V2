@@ -13,6 +13,70 @@ from controllers.db import initialize_database
 # Importar configuración
 from config import STYLES_DIR, APP_NAME, APP_ICON, CSS_FILE, log_config_info
 
+# Añadir TEMPORALMENTE al inicio de main.py (después de los imports)
+
+# 🔍 DEBUG TEMPORAL - ELIMINAR DESPUÉS
+if st.sidebar.button("🔍 DEBUG - Diagnosticar BD"):
+    st.write("🔍 **DIAGNÓSTICO DE BASE DE DATOS**")
+    
+    import os
+    import hashlib
+    from sqlalchemy import text
+    from controllers.db import get_db_session
+    
+    # Variables de entorno
+    database_url = os.getenv("DATABASE_URL")
+    database_path = os.getenv("DATABASE_PATH", "data/ballers_app.db")
+    
+    st.write(f"📊 DATABASE_URL: {'✅ Configurada' if database_url else '❌ No configurada'}")
+    st.write(f"📁 DATABASE_PATH: {database_path}")
+    
+    if database_url:
+        st.write(f"🔗 URL: {database_url[:50]}...")
+        st.success("🔄 Debería usar Supabase")
+    else:
+        st.warning("🔄 Usando SQLite local")
+    
+    # Conectar y verificar
+    try:
+        db = get_db_session()
+        
+        # Buscar admin
+        result = db.execute(text("""
+            SELECT user_id, username, name, email, password_hash 
+            FROM users 
+            WHERE username = 'admin'
+        """)).fetchone()
+        
+        if result:
+            user_id, username, name, email, stored_hash = result
+            st.success(f"✅ Usuario admin encontrado: {name} ({email})")
+            st.write(f"🔐 Hash: {stored_hash[:20]}...")
+            
+            # Verificar hash
+            test_hash = hashlib.sha256("admin123".encode()).hexdigest()
+            if test_hash == stored_hash:
+                st.success("✅ Hash correcto")
+            else:
+                st.error("❌ Hash incorrecto")
+                st.write(f"Calculado: {test_hash[:20]}...")
+                st.write(f"Almacenado: {stored_hash[:20]}...")
+        else:
+            st.error("❌ Usuario admin NO encontrado")
+            
+            # Listar usuarios
+            users = db.execute(text("SELECT username, name FROM users LIMIT 5")).fetchall()
+            if users:
+                st.write("📋 Usuarios en BD:")
+                for u, n in users:
+                    st.write(f"- {u} ({n})")
+        
+        db.close()
+        
+    except Exception as e:
+        st.error(f"❌ Error: {e}")
+
+# 🔍 FIN DEBUG TEMPORAL
 # 🆕 NUEVO: Registrar información del entorno al inicio
 log_config_info()
 
