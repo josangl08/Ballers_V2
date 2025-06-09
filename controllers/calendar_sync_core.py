@@ -6,9 +6,7 @@ Maneja la sincronización bidireccional sin coordinar auto-sync ni estadísticas
 import datetime as dt
 import logging
 import time
-import os
 import re
-import streamlit as st
 from typing import List, Tuple, Dict, Optional
 from sqlalchemy import func
 from googleapiclient.errors import HttpError
@@ -31,21 +29,10 @@ from .calendar_utils import (
     build_calendar_event_body,
     status_from_color
 )
-from config import CALENDAR_COLORS
+from config import CALENDAR_COLORS, CALENDAR_ID
+
 logger = logging.getLogger(__name__)
-
-def get_calendar_id():
-    """Obtiene Calendar ID desde secrets o variable de entorno"""
-    try:
-        if hasattr(st, 'secrets') and hasattr(st.secrets.google, 'calendar_id'):
-            return st.secrets.google.calendar_id
-    except:
-        pass
-    return os.getenv("CALENDAR_ID")
-
-CAL_ID = get_calendar_id()
 LOCAL_TZ = dt.timezone(dt.timedelta(hours=2))  # Madrid timezone simplificado
-
 
 def guess_coach_player_ids(event: dict) -> Tuple[Optional[int], Optional[int]]:
     """
@@ -126,7 +113,7 @@ def patch_event_after_import(session: Session, event_id: str):
     """
     try:
         # Verificar si el evento ya tiene los datos correctos
-        current_event = calendar().events().get(calendarId=CAL_ID, eventId=event_id).execute()
+        current_event = calendar().events().get(calendarId=CALENDAR_ID, eventId=event_id).execute()
         
         props = current_event.get("extendedProperties", {}).get("private", {})
         session_id_in_event = props.get("session_id")
@@ -140,7 +127,6 @@ def patch_event_after_import(session: Session, event_id: str):
             needs_update = True
         
         # Si tiene color desconocido, normalizarlo
-        from config import CALENDAR_COLORS
         valid_colors = [v["google"] for v in CALENDAR_COLORS.values()]
         if current_color not in valid_colors:
             needs_update = True
@@ -174,7 +160,7 @@ def patch_event_after_import(session: Session, event_id: str):
             }
 
             calendar().events().patch(
-                calendarId=CAL_ID,
+                calendarId=CALENDAR_ID,
                 eventId=event_id,
                 body=patch_body
             ).execute()
@@ -197,7 +183,7 @@ def update_session_in_calendar_only(session: Session):
     try:
         body = build_calendar_event_body(session)
         calendar().events().patch(
-            calendarId=CAL_ID,
+            calendarId=CALENDAR_ID,
             eventId=session.calendar_event_id,
             body=body
         ).execute()
@@ -238,9 +224,9 @@ def sync_calendar_to_db_with_feedback() -> Tuple[int, int, int, List[Dict], List
         logger.info(f"📅 Ventana de sincronización: {win_start.date()} a {win_end.date()}")
 
         # Obtener eventos de Google Calendar
-        logger.info("📡 Obteniendo eventos de Google Calendar...")
+        logger.info(f"📡 Obteniendo eventos de Google Calendar (ID: {CALENDAR_ID})...")
         events_response = svc.events().list(
-            calendarId=CAL_ID,
+            calendarId=CALENDAR_ID,
             timeMin=win_start.isoformat(),
             timeMax=win_end.isoformat(),
             singleEvents=True,
@@ -702,12 +688,11 @@ def sync_db_to_calendar() -> Tuple[int, int]:
         return pushed, updated
 
 
-
 def patch_color(event_id: str, status: SessionStatus):
     """Actualiza solo el color de un evento en Calendar."""
     COLOR = {k: v["google"] for k, v in CALENDAR_COLORS.items()}
     
     calendar().events().patch(
-        calendarId=CAL_ID, eventId=event_id,
+        calendarId=CALENDAR_ID, eventId=event_id,
         body={"colorId": COLOR[status.value]}
     ).execute()

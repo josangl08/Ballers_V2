@@ -10,7 +10,7 @@ from common.menu import create_sidebar_menu, get_content_path
 from controllers.sync_coordinator import is_auto_sync_running, start_auto_sync
 from controllers.db import initialize_database 
 
-# Importar configuración
+# Importar configuración unificada
 from config import STYLES_DIR, APP_NAME, APP_ICON, CSS_FILE, log_config_info
 
 # 🆕 NUEVO: Registrar información del entorno al inicio
