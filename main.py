@@ -38,14 +38,14 @@ footer {
 
 /* Oculta el recuadro rojo "Hosted with Streamlit" (usando la clase proporcionada) */
 /* Nota: Se usa el selector más específico para evitar conflictos */
-.st-emotion-cache-gzau3_1.st-emotion-cache-nim44_23 { /* Combina las dos clases del recuadro rojo */
+._container_gzau3_1._viewerBadge_nim44_23 { /* Combina las dos clases del recuadro rojo */
     visibility: hidden !important;
     height: 0%;
     position: fixed;
 }
 
 /* Oculta la imagen del perfil de GitHub (usando la clase proporcionada) */
-.st-emotion-cache-gzau3_53 { /* Esta es la clase de la imagen de perfil */
+._profileContainer_gzau3_53 { /* Esta es la clase de la imagen de perfil */
     visibility: hidden !important;
     height: 0%;
     position: fixed;
