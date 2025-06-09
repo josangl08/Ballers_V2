@@ -5,7 +5,7 @@ Usa ValidationController para validaciones de existencia
 """
 import datetime as dt
 import logging
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 from sqlalchemy.orm import Session as SQLSession
 from zoneinfo import ZoneInfo
 from models import Session, SessionStatus, Coach, Player, User
@@ -18,12 +18,10 @@ from .calendar_utils import (
     session_needs_update
 )
 from googleapiclient.errors import HttpError
-import os
+from config import CALENDAR_ID  # 🔧 IMPORTAR DESDE CONFIG
 from controllers.validation_controller import ValidationController
 
 logger = logging.getLogger(__name__)
-CAL_ID = os.getenv("CALENDAR_ID")
-
 
 class SessionController:
     """
@@ -314,7 +312,7 @@ class SessionController:
             
             body = build_calendar_event_body(session)
             event = calendar().events().insert(
-                calendarId=CAL_ID, 
+                calendarId=CALENDAR_ID,  # 🔧 USAR CALENDAR_ID DESDE CONFIG
                 body=body
             ).execute()
             
@@ -349,7 +347,7 @@ class SessionController:
             
             body = build_calendar_event_body(session)
             calendar().events().patch(
-                calendarId=CAL_ID,
+                calendarId=CALENDAR_ID,  # 🔧 USAR CALENDAR_ID DESDE CONFIG
                 eventId=session.calendar_event_id,
                 body=body
             ).execute()
@@ -383,7 +381,7 @@ class SessionController:
         
         try:
             calendar().events().delete(
-                calendarId=CAL_ID,
+                calendarId=CALENDAR_ID,  # 🔧 USAR CALENDAR_ID DESDE CONFIG
                 eventId=session.calendar_event_id
             ).execute()
             
@@ -411,7 +409,7 @@ class SessionController:
             COLOR = {k: v["google"] for k, v in CALENDAR_COLORS.items()}
             
             calendar().events().patch(
-                calendarId=CAL_ID, 
+                calendarId=CALENDAR_ID,  # 🔧 USAR CALENDAR_ID DESDE CONFIG
                 eventId=session.calendar_event_id,
                 body={"colorId": COLOR[session.status.value]}
             ).execute()

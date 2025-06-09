@@ -10,11 +10,8 @@ from common.menu import create_sidebar_menu, get_content_path
 from controllers.sync_coordinator import is_auto_sync_running, start_auto_sync
 from controllers.db import initialize_database 
 
-# Importar configuración unificada
+# Importar configuración unificada (SIN ejecutar log automático)
 from config import STYLES_DIR, APP_NAME, APP_ICON, CSS_FILE, log_config_info
-
-# 🆕 NUEVO: Registrar información del entorno al inicio
-log_config_info()
 
 # Configuración de la página
 st.set_page_config(
@@ -81,6 +78,10 @@ h2, h3 {
 
 # Función principal
 def main():
+    # 🔧 LLAMAR LOG SOLO UNA VEZ AL INICIO
+    if 'app_initialized' not in st.session_state:
+        log_config_info()  # Solo se ejecuta la primera vez
+        st.session_state.app_initialized = True
 
     # Configurar nivel de logging basado en variable de entorno
     DEBUG_MODE = os.getenv("DEBUG", "False") == "True"
@@ -96,6 +97,7 @@ def main():
             level=logging.INFO,
             format='%(asctime)s - %(levelname)s - %(message)s'
         )
+    
     # Inicializar base de datos
     try:
         if not initialize_database():

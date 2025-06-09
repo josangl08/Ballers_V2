@@ -9,14 +9,45 @@ import streamlit as st
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Detectar entorno
+# =============================================================================
+# DETECCIÓN DE ENTORNO CORREGIDA
+# =============================================================================
+
 def is_production():
-    """Detecta si estamos en producción (Streamlit Cloud)."""
-    return (
-        "STREAMLIT_SHARING" in os.environ or 
-        "STREAMLIT_CLOUD" in os.environ or
-        os.getenv("STREAMLIT_SERVER_PORT") is not None
-    )
+    """
+    Detecta si estamos en producción de forma MÁS ESTRICTA.
+    Solo considera producción si hay evidencia clara de Streamlit Cloud.
+    """
+    # Método 1: Variables de entorno específicas de Streamlit Cloud
+    streamlit_cloud_vars = [
+        "STREAMLIT_SHARING", 
+        "STREAMLIT_CLOUD"
+    ]
+    
+    if any(var in os.environ for var in streamlit_cloud_vars):
+        print(f"🌍 Producción detectada por variable: {[var for var in streamlit_cloud_vars if var in os.environ]}")
+        return True
+    
+    # Método 2: STREAMLIT_SERVER_PORT solo si no hay archivo .env
+    if "STREAMLIT_SERVER_PORT" in os.environ and not os.path.exists(".env"):
+        print("🌍 Producción detectada por STREAMLIT_SERVER_PORT (sin .env local)")
+        return True
+    
+    # Método 3: Verificar si hay secrets de Streamlit disponibles (MÁS ESTRICTO)
+    try:
+        if hasattr(st, 'secrets'):
+            # Verificar que tenga secrets específicos de producción
+            if (hasattr(st.secrets, 'database') and 
+                hasattr(st.secrets, 'google') and
+                not os.path.exists(".env")):  # Y no hay .env local
+                print("🌍 Producción detectada por secrets (sin .env local)")
+                return True
+    except:
+        pass
+    
+    # Por defecto: desarrollo
+    print("💻 Desarrollo detectado")
+    return False
 
 IS_PRODUCTION = is_production()
 IS_DEVELOPMENT = not IS_PRODUCTION
@@ -24,6 +55,7 @@ IS_DEVELOPMENT = not IS_PRODUCTION
 # Cargar .env solo en desarrollo
 if IS_DEVELOPMENT:
     load_dotenv()
+    print("📁 Archivo .env cargado para desarrollo")
 
 # =============================================================================
 # CONFIGURACIÓN DE BASE DE DATOS
@@ -33,17 +65,32 @@ def get_database_url():
     """Obtiene URL de base de datos (PostgreSQL en producción, SQLite en desarrollo)."""
     if IS_PRODUCTION:
         try:
-            # Producción: usar DATABASE_URL directo de secrets
-            return st.secrets["DATABASE_URL"]
+            # Método 1: DATABASE_URL directo de secrets
+            if hasattr(st, 'secrets') and hasattr(st.secrets, 'DATABASE_URL'):
+                return st.secrets["DATABASE_URL"]
         except:
-            # Fallback: construir desde secrets de database
-            return (
-                f"postgresql://{st.secrets['database']['username']}:"
-                f"{st.secrets['database']['password']}@"
-                f"{st.secrets['database']['host']}:"
-                f"{st.secrets['database']['port']}/"
-                f"{st.secrets['database']['database']}"
-            )
+            pass
+        
+        try:
+            # Método 2: Construir desde secrets de database
+            if hasattr(st, 'secrets') and hasattr(st.secrets, 'database'):
+                return (
+                    f"postgresql://{st.secrets['database']['username']}:"
+                    f"{st.secrets['database']['password']}@"
+                    f"{st.secrets['database']['host']}:"
+                    f"{st.secrets['database']['port']}/"
+                    f"{st.secrets['database']['database']}"
+                )
+        except:
+            pass
+        
+        # Método 3: Variable de entorno DATABASE_URL
+        db_url = os.getenv("DATABASE_URL")
+        if db_url:
+            return db_url
+        
+        # Fallback si falla todo
+        raise ValueError("No se pudo obtener DATABASE_URL en producción")
     else:
         # Desarrollo: SQLite local
         return f"sqlite:///{os.getenv('DATABASE_PATH', 'data/ballers_app.db')}"
@@ -58,9 +105,12 @@ def get_calendar_id():
     """Obtiene ID del calendario de Google."""
     if IS_PRODUCTION:
         try:
-            return st.secrets["google"]["calendar_id"]
+            if hasattr(st, 'secrets') and hasattr(st.secrets, 'google'):
+                return st.secrets["google"]["calendar_id"]
         except:
-            return "info@ballersbangkok.com"  # Default de producción
+            pass
+        # Fallback producción
+        return "info@ballersbangkok.com"
     else:
         return os.getenv("CALENDAR_ID", "josangl08@usal.es")
 
@@ -68,9 +118,12 @@ def get_accounting_sheet_id():
     """Obtiene ID de la hoja de cálculo de contabilidad."""
     if IS_PRODUCTION:
         try:
-            return st.secrets["google"]["accounting_sheet_id"]
+            if hasattr(st, 'secrets') and hasattr(st.secrets, 'google'):
+                return st.secrets["google"]["accounting_sheet_id"]
         except:
-            return "1Lf1lpplLOrewG4V-8949Ny9PLg6nX5n9_GgIWtQWqQY"  # Default de producción
+            pass
+        # Fallback producción
+        return "1Lf1lpplLOrewG4V-8949Ny9PLg6nX5n9_GgIWtQWqQY"
     else:
         return os.getenv("ACCOUNTING_SHEET_ID", "1ZH53dleTQRzt6Tvhobi7cLwoVDaDfuOtLe3UdvtRVR0")
 
@@ -78,22 +131,23 @@ def get_google_credentials():
     """Obtiene credenciales de Google (secrets en producción, archivo en desarrollo)."""
     if IS_PRODUCTION:
         try:
-            return {
-                "type": st.secrets["google"]["type"],
-                "project_id": st.secrets["google"]["project_id"],
-                "private_key_id": st.secrets["google"]["private_key_id"],
-                "private_key": st.secrets["google"]["private_key"],
-                "client_email": st.secrets["google"]["client_email"],
-                "client_id": st.secrets["google"]["client_id"],
-                "auth_uri": st.secrets["google"]["auth_uri"],
-                "token_uri": st.secrets["google"]["token_uri"],
-                "auth_provider_x509_cert_url": st.secrets["google"]["auth_provider_x509_cert_url"],
-                "client_x509_cert_url": st.secrets["google"]["client_x509_cert_url"],
-                "universe_domain": st.secrets["google"]["universe_domain"]
-            }
+            if hasattr(st, 'secrets') and hasattr(st.secrets, 'google'):
+                return {
+                    "type": st.secrets["google"]["type"],
+                    "project_id": st.secrets["google"]["project_id"],
+                    "private_key_id": st.secrets["google"]["private_key_id"],
+                    "private_key": st.secrets["google"]["private_key"],
+                    "client_email": st.secrets["google"]["client_email"],
+                    "client_id": st.secrets["google"]["client_id"],
+                    "auth_uri": st.secrets["google"]["auth_uri"],
+                    "token_uri": st.secrets["google"]["token_uri"],
+                    "auth_provider_x509_cert_url": st.secrets["google"]["auth_provider_x509_cert_url"],
+                    "client_x509_cert_url": st.secrets["google"]["client_x509_cert_url"],
+                    "universe_domain": st.secrets["google"]["universe_domain"]
+                }
         except Exception as e:
             print(f"⚠️ Error leyendo credenciales de Google desde secrets: {e}")
-            return None
+        return None
     else:
         # Desarrollo: usar archivo local
         return None
@@ -103,6 +157,8 @@ CALENDAR_ID = get_calendar_id()
 ACCOUNTING_SHEET_ID = get_accounting_sheet_id()
 GOOGLE_CREDENTIALS = get_google_credentials()
 
+print(f"🔧 CONFIG DEBUG - CALENDAR_ID: {CALENDAR_ID}")  # Para debugging
+
 # =============================================================================
 # CONFIGURACIÓN DE LA APLICACIÓN
 # =============================================================================
@@ -111,9 +167,12 @@ def get_session_secret():
     """Obtiene clave secreta para sesiones."""
     if IS_PRODUCTION:
         try:
-            return st.secrets["app"]["session_secret"]
+            if hasattr(st, 'secrets') and hasattr(st.secrets, 'app'):
+                return st.secrets["app"]["session_secret"]
         except:
-            return "ballers-app-production-2025-secure-key-Q4FAATxa4mw9sZk"
+            pass
+        # Fallback producción
+        return "ballers-app-production-2025-secure-key-Q4FAATxa4mw9sZk"
     else:
         return os.getenv("SESSION_SECRET", "your-default-secret-key")
 
@@ -199,11 +258,15 @@ SESSION_DURATION = {
 }
 
 # =============================================================================
-# FUNCIÓN DE LOGGING
+# FUNCIÓN DE LOGGING (NO SE EJECUTA AUTOMÁTICAMENTE)
 # =============================================================================
 
 def log_config_info():
-    """Muestra información de configuración al inicio."""
+    """
+    Muestra información de configuración al inicio.
+    IMPORTANTE: Esta función NO se ejecuta automáticamente al importar.
+    Debe ser llamada explícitamente desde main.py.
+    """
     env_name = "PRODUCTION" if IS_PRODUCTION else "DEVELOPMENT"
     db_type = "PostgreSQL (Supabase)" if IS_PRODUCTION else "SQLite (Local)"
     
