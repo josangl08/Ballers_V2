@@ -185,6 +185,8 @@ logs/
 backups/
 .streamlit/secrets.toml
 .streamlit/secrets_local.toml
+.streamlit/config.toml
+
 
 #  Proteger archivos de test
 test_supabase.py
@@ -194,3 +196,4 @@ diagnose_supabase.py
 verify_production_config.py
 simple_verificacion.py
 test_final_local.py
+verify_secrets_format.py
