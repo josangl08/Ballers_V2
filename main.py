@@ -21,6 +21,49 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+hide_streamlit_style = """
+<style>
+/* Oculta los tres puntos (menú de hamburguesa) */
+/* Este selector es muy robusto para el menú de hamburguesa */
+[data-testid="stToolbar"] {
+    visibility: hidden !important;
+    height: 0%;
+    position: fixed; /* Asegura que no ocupe espacio */
+}
+
+/* Oculta el pie de página "Made with Streamlit" o "Hosted with Streamlit" */
+footer {
+    visibility: hidden !important;
+    height: 0%;
+}
+
+/* Oculta el icono de perfil de GitHub / el círculo de "Manage App" en la esquina inferior derecha */
+/* Este es el selector más probable para el círculo con tu imagen de perfil / "Hosted with Streamlit" */
+/* Puede variar ligeramente según la versión de Streamlit, pero es el más común */
+[data-testid="stDecoration"] {
+    visibility: hidden !important;
+    height: 0%;
+    position: fixed;
+}
+
+/* Opcional: Oculta la barra de carga que a veces aparece en la parte superior */
+/* Es la barrita roja/amarilla que indica que la app está cargando */
+header {
+    visibility: hidden !important;
+    height: 0%;
+}
+
+/* Opcional: Oculta el logo de Streamlit en la esquina superior izquierda si aparece */
+/* Los selectores de clase como 'st-emotion-cache-...' pueden cambiar con las versiones */
+/* Tendrías que inspeccionar tu página para encontrar el selector exacto si este no funciona */
+.st-emotion-cache-s8w34l { /* Ejemplo de selector de clase para el logo, puede variar */
+    visibility: hidden !important;
+    height: 0%;
+}
+</style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 # Aplicar estilos personalizados
 def load_css():
     try:

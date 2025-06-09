@@ -19,7 +19,7 @@ magicEnabled = true
 
 
 [client]
-toolbarMode = "auto"
+toolbarMode = "minimal"
 showErrorDetails = true
 showSidebarNavigation = false
 
