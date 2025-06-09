@@ -24,6 +24,7 @@ st.set_page_config(
 hide_streamlit_style = """
 <style>
 /* Oculta los tres puntos (menú de hamburguesa) */
+/* Este selector es el más robusto para el menú de hamburguesa */
 [data-testid="stToolbar"] {
     visibility: hidden !important;
     height: 0%;
@@ -36,16 +37,17 @@ footer {
     height: 0%;
 }
 
-/* Oculta el recuadro rojo "Hosted with Streamlit" (usando la clase proporcionada) */
-/* Nota: Se usa el selector más específico para evitar conflictos */
-._container_gzau3_1._viewerBadge_nim44_23 { /* Combina las dos clases del recuadro rojo */
+/* Oculta el recuadro rojo "Hosted with Streamlit" */
+/* Usamos ambas clases combinadas con el prefijo 'st-emotion-cache-' */
+.st-emotion-cache-gzau3_1.st-emotion-cache-nim44_23 {
     visibility: hidden !important;
     height: 0%;
     position: fixed;
 }
 
-/* Oculta la imagen del perfil de GitHub (usando la clase proporcionada) */
-._profileContainer_gzau3_53 { /* Esta es la clase de la imagen de perfil */
+/* Oculta la imagen del perfil de GitHub */
+/* Usamos la clase con el prefijo 'st-emotion-cache-' */
+.st-emotion-cache-gzau3_53 {
     visibility: hidden !important;
     height: 0%;
     position: fixed;
