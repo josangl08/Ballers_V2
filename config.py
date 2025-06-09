@@ -88,3 +88,4 @@ def log_config_info():
     print(f"💾 Database: {db_type}")
     print(f"📅 Calendar ID: {CALENDAR_ID}")
     print(f"🔐 Debug mode: {DEBUG}")
+

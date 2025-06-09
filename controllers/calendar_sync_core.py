@@ -8,6 +8,7 @@ import logging
 import time
 import os
 import re
+import streamlit as st
 from typing import List, Tuple, Dict, Optional
 from sqlalchemy import func
 from googleapiclient.errors import HttpError
@@ -33,7 +34,16 @@ from .calendar_utils import (
 from config import CALENDAR_COLORS
 logger = logging.getLogger(__name__)
 
-CAL_ID = os.getenv("CALENDAR_ID")
+def get_calendar_id():
+    """Obtiene Calendar ID desde secrets o variable de entorno"""
+    try:
+        if hasattr(st, 'secrets') and hasattr(st.secrets.google, 'calendar_id'):
+            return st.secrets.google.calendar_id
+    except:
+        pass
+    return os.getenv("CALENDAR_ID")
+
+CAL_ID = get_calendar_id()
 LOCAL_TZ = dt.timezone(dt.timedelta(hours=2))  # Madrid timezone simplificado
 
 
