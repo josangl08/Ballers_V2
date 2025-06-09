@@ -192,3 +192,5 @@ test_both_supabase.py
 test_correct_supabase.py
 diagnose_supabase.py
 verify_production_config.py
+simple_verificacion.py
+test_final_local.py
