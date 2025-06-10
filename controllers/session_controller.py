@@ -315,7 +315,7 @@ class SessionController:
                 calendarId=CALENDAR_ID,  # 🔧 USAR CALENDAR_ID DESDE CONFIG
                 body=body
             ).execute()
-            
+            print("DEBUG body insert:", body)
             # Actualizar calendar_event_id
             session.calendar_event_id = event["id"]
             
@@ -343,7 +343,6 @@ class SessionController:
             return self._push_session_to_calendar(session)
         
         try:
-            from .calendar_utils import build_calendar_event_body, update_session_tracking
             
             body = build_calendar_event_body(session)
             calendar().events().patch(

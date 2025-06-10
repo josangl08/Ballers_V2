@@ -18,8 +18,6 @@ from config import CALENDAR_COLORS
 LOCAL_TZ = TIMEZONE
 logger = logging.getLogger(__name__)
 
-
-
 def calculate_session_hash(session: Session) -> str:
     """Calcula hash MD5 basado en datos importantes de la sesión CON FECHAS NORMALIZADAS."""
     try:
@@ -84,19 +82,37 @@ def calculate_event_hash(event_data: dict) -> str:
 
 
 def build_calendar_event_body(session: Session) -> dict:
-    """Devuelve el diccionario body que Calendar API espera."""
+    """
+    Devuelve el diccionario body que Calendar API espera.
+    🔧 SOLUCIÓN ROBUSTA: Siempre enviar UTC con timezone especificado.
+    """
     
     COLOR = {k: v["google"] for k, v in CALENDAR_COLORS.items()}
-    start = session.start_time.isoformat()  # mantiene +07:00
-    end   = session.end_time  .isoformat()
+    
+    # 🔧 SOLUCIÓN ROBUSTA: Convertir todo a UTC primero
+    if session.start_time.tzinfo is not None:
+        # Si tiene timezone, convertir a UTC
+        start_utc = session.start_time.astimezone(dt.timezone.utc)
+        end_utc = session.end_time.astimezone(dt.timezone.utc)
+    else:
+        # Si es naive, asumir que está en LOCAL_TZ y convertir a UTC
+        start_aware = session.start_time.replace(tzinfo=LOCAL_TZ)
+        end_aware = session.end_time.replace(tzinfo=LOCAL_TZ)
+        start_utc = start_aware.astimezone(dt.timezone.utc)
+        end_utc = end_aware.astimezone(dt.timezone.utc)
+    
+    # Quitar timezone info para enviar como string limpio
+    start = start_utc.replace(tzinfo=None).isoformat() + 'Z'  # RFC3339 UTC format
+    end = end_utc.replace(tzinfo=None).isoformat() + 'Z'      # RFC3339 UTC format
+    
     return {
         "summary": (
             f"Session: {session.coach.user.name} × {session.player.user.name} "
             f"#C{session.coach_id} #P{session.player_id}"
         ),
         "description": session.notes or "",
-        "start": {"dateTime": start, "timeZone": TIMEZONE_NAME},
-        "end":   {"dateTime": end,   "timeZone": TIMEZONE_NAME},
+        "start": {"dateTime": start},  # UTC format, sin timeZone especificado
+        "end":   {"dateTime": end},    # UTC format, sin timeZone especificado
         "colorId": COLOR[session.status.value],
         "extendedProperties": {
             "private": {
