@@ -34,17 +34,24 @@ def format_time_local(dt_obj: Optional[dt.datetime]) -> str:
 def to_calendar_str(dt_obj: dt.datetime) -> str:
     """
     Convierte cualquier datetime a string para FullCalendar.
-    🔧 FIX: Maneja correctamente datetime naive de BD.
+    🔧 FIX: Corrige datetime UTC de PostgreSQL.
     """
     if dt_obj is None:
         return ""
     
-    # 🔧 FIX: Si es naive, asumir que YA está en hora local correcta
-    if dt_obj.tzinfo is None:
-        # Datetime naive - ya está en la hora local correcta de BD
+    # 🔧 FIX: Si viene con UTC de PostgreSQL, convertir a hora local SIN timezone
+    if dt_obj.tzinfo == dt.timezone.utc:
+        # PostgreSQL guardó como UTC, pero queremos mostrar como hora local
+        # Revertir: quitar las 7 horas que se agregaron incorrectamente
+        local_dt = dt_obj - dt.timedelta(hours=UTC_OFFSET_HOURS)
+        return local_dt.strftime("%Y-%m-%dT%H:%M:%S")
+    
+    # Si es naive, asumir que ya está en hora local correcta
+    elif dt_obj.tzinfo is None:
         return dt_obj.strftime("%Y-%m-%dT%H:%M:%S")
+    
+    # Si tiene otro timezone, convertir a local
     else:
-        # Datetime con timezone - convertir a local y quitar tzinfo
         local_dt = dt_obj.astimezone(TIMEZONE).replace(tzinfo=None)
         return local_dt.strftime("%Y-%m-%dT%H:%M:%S")
 
