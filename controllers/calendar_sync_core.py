@@ -255,21 +255,6 @@ def sync_calendar_to_db_with_feedback() -> Tuple[int, int, int, List[Dict], List
         for i, ev in enumerate(events, 1):
             ev_id = ev["id"]
             seen_ev_ids.add(ev_id)
-
-            if ev.get("summary", "").startswith("Session:"):  # Solo para sesiones
-                st.error(f"🔍 DEBUG SYNC FROM GOOGLE:")
-                st.write(f"  📝 Event summary: {ev.get('summary', 'Sin título')}")
-                st.write(f"  📅 Raw start from Google: {ev['start']}")
-                st.write(f"  📅 Raw end from Google: {ev['end']}")
-                
-                # Ver qué produce _to_dt
-                start_dt = _to_dt(ev["start"]["dateTime"])
-                end_dt = _to_dt(ev["end"]["dateTime"])
-                
-                st.write(f"  🔗 Converted start_dt: {start_dt}")
-                st.write(f"  🔗 start_dt.tzinfo: {start_dt.tzinfo}")
-                st.write(f"  🔗 start_dt ISO: {start_dt.isoformat()}")
-                st.write("=" * 50)
             
             if i % 10 == 0:  # Log progreso cada 10 eventos
                 logger.info(f"⏳ Procesando evento {i}/{len(events)}")
@@ -444,14 +429,14 @@ def sync_calendar_to_db_with_feedback() -> Tuple[int, int, int, List[Dict], List
                     new_start = start_dt.astimezone(dt.timezone.utc).replace(microsecond=0)
                     if db_start != new_start:
                         changes.append(f"start: {format_time_local(db_start)} → {format_time_local(new_start)}")
-                        ses.start_time = start_dt
+                        ses.start_time = start_dt.replace(tzinfo=None)
                         changed = True
 
                     db_end = ses.end_time.astimezone(dt.timezone.utc).replace(microsecond=0)
                     new_end = end_dt.astimezone(dt.timezone.utc).replace(microsecond=0)
                     if db_end != new_end:
                         changes.append(f"end: {format_time_local(db_end)} → {format_time_local(new_end)}")
-                        ses.end_time = end_dt
+                        ses.end_time = end_dt.replace(tzinfo=None)
                         changed = True
                     
                     new_notes = ev.get("description", "") or ""
@@ -555,8 +540,8 @@ def sync_calendar_to_db_with_feedback() -> Tuple[int, int, int, List[Dict], List
                 new_session = Session(
                     coach_id=coach_id,
                     player_id=player_id,
-                    start_time=start_dt,
-                    end_time=end_dt,
+                    start_time=start_dt.replace(tzinfo=None),  # ✅ Sin timezone para BD
+                    end_time=end_dt.replace(tzinfo=None),       # ✅ Sin timezone para BD
                     status=status,
                     notes=ev.get("description"),
                     calendar_event_id=ev_id,
