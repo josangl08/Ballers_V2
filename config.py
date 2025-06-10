@@ -14,15 +14,41 @@ from zoneinfo import ZoneInfo
 # =============================================================================
 
 # En Streamlit Cloud, definir ENVIRONMENT=production en secrets
-IS_PRODUCTION = os.getenv("ENVIRONMENT", "development") == "production"
+
+def detect_production_environment():
+    """Detecta si estamos en producción usando múltiples métodos"""
+    
+    # Método 1: Variable ENVIRONMENT en secrets/env
+    env_var = os.getenv("ENVIRONMENT", "").lower()
+    if env_var == "production":
+        return True
+    
+    # Método 2: Detección por hostname (Streamlit Cloud)
+    import socket
+    hostname = socket.gethostname().lower()
+    if "streamlit" in hostname or "cloud" in hostname:
+        return True
+    
+    # Método 3: Detección por secrets de Streamlit
+    if hasattr(st, 'secrets'):
+        try:
+            # Si hay secrets configurados, probablemente es producción
+            if 'google' in st.secrets and 'DATABASE_URL' in st.secrets:
+                return True
+        except:
+            pass
+    
+    # Método 4: Variable de entorno de Streamlit Cloud
+    if os.getenv("STREAMLIT_SHARING_MODE") or os.getenv("STREAMLIT_CLOUD"):
+        return True
+    
+    return False
+
+# Usar detección mejorada
+IS_PRODUCTION = detect_production_environment()
 IS_DEVELOPMENT = not IS_PRODUCTION
 
-# Cargar .env solo en desarrollo
-if IS_DEVELOPMENT:
-    load_dotenv()
-    print("📁 Archivo .env cargado para desarrollo")
-else:
-    print("🌍 Modo producción activado")
+print(f"🌍 Entorno detectado: {'PRODUCTION' if IS_PRODUCTION else 'DEVELOPMENT'}")
 
 # =============================================================================
 # CONFIGURACIÓN DE BASE DE DATOS
@@ -172,23 +198,32 @@ if IS_PRODUCTION:
     TIMEZONE = ZoneInfo("Asia/Bangkok")
     TIMEZONE_NAME = "Asia/Bangkok"
     UTC_OFFSET_HOURS = 7
+    print("🇹🇭 Configurando timezone para Tailandia (Asia/Bangkok)")
 else:
     # Desarrollo: España
     TIMEZONE = ZoneInfo("Europe/Madrid")
     TIMEZONE_NAME = "Europe/Madrid"
     UTC_OFFSET_HOURS = 2  # Aproximado, varía con DST
+    print("🇪🇸 Configurando timezone para España (Europe/Madrid)")
 
-print(f"🌍 Timezone: {TIMEZONE_NAME} (UTC+{UTC_OFFSET_HOURS})")
+print(f"🌍 Timezone activo: {TIMEZONE_NAME} (UTC+{UTC_OFFSET_HOURS})")
+
+# Verificar que funciona correctamente
+current_time = dt.datetime.now(TIMEZONE)
+print(f"⏰ Hora actual en {TIMEZONE_NAME}: {current_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+
 
 def log_config_info():
     """Muestra información de configuración al inicio."""
     env_name = "PRODUCTION" if IS_PRODUCTION else "DEVELOPMENT"
     db_type = "PostgreSQL (Supabase)" if IS_PRODUCTION else "SQLite (Local)"
     
-    print("="*50)
+    print("="*60)
     print(f"🚀 Ballers App - {env_name}")
     print(f"💾 Database: {db_type}")
+    print(f"🌍 Timezone: {TIMEZONE_NAME} (UTC+{UTC_OFFSET_HOURS})")
     print(f"📅 Calendar: {CALENDAR_ID}")
     print(f"📊 Sheet: {ACCOUNTING_SHEET_ID}")
     print(f"🔐 Debug: {DEBUG}")
-    print("="*50)
+    print(f"⏰ Hora actual: {dt.datetime.now(TIMEZONE).strftime('%H:%M:%S %Z')}")
+    print("="*60)
