@@ -631,33 +631,26 @@ def create_session_with_calendar(
 ) -> tuple[bool, str, Optional[Session]]:
     """Función de conveniencia para crear sesión con sincronización."""
     
-    # 🔧 DEBUG: Logs detallados
-    print(f"🔍 DEBUG CREATE SESSION:")
-    print(f"  📅 Input date: {session_date}")
-    print(f"  🕐 Input start_time: {start_time}")
-    print(f"  🕐 Input end_time: {end_time}")
-    print(f"  🌍 TIMEZONE: {TIMEZONE}")
-    print(f"  🏭 IS_PRODUCTION: {IS_PRODUCTION}")
-
     # Combinar date + time para crear datetimes
     start_datetime = dt.datetime.combine(session_date, start_time, tzinfo=TIMEZONE)
     end_datetime   = dt.datetime.combine(session_date, end_time,   tzinfo=TIMEZONE)
-
-    print(f"  🔗 start_datetime (with tz): {start_datetime}")
-    print(f"  🔗 end_datetime (with tz): {end_datetime}")
-    print(f"  🔗 start_datetime ISO: {start_datetime.isoformat()}")
-    print(f"  🔗 end_datetime ISO: {end_datetime.isoformat()}")
     
-    # 👇  EN DESARROLLO (SQLite) quitamos tzinfo para evitar la conversión a UTC
-    if not IS_PRODUCTION:
-        start_datetime = start_datetime.replace(tzinfo=None)
-        end_datetime   = end_datetime.replace(tzinfo=None)
+    # 🔧 FIX: SIEMPRE quitar tzinfo para evitar problemas con PostgreSQL
+    # ❌ ANTES: Solo en desarrollo
+    # if not IS_PRODUCTION:
+    #     start_datetime = start_datetime.replace(tzinfo=None)
+    #     end_datetime   = end_datetime.replace(tzinfo=None)
+    
+    # ✅ AHORA: Siempre quitar tzinfo para BD, pero recordar timezone para Calendar
+    start_datetime_for_bd = start_datetime.replace(tzinfo=None)
+    end_datetime_for_bd   = end_datetime.replace(tzinfo=None)
+    
     with SessionController() as controller:
         return controller.create_session(
             coach_id=coach_id,
             player_id=player_id,
-            start_time=start_datetime,  
-            end_time=end_datetime,      
+            start_time=start_datetime_for_bd,   # ✅ Sin timezone para BD
+            end_time=end_datetime_for_bd,       # ✅ Sin timezone para BD
             notes=notes,
             status=status,
             sync_to_calendar=True
@@ -672,15 +665,22 @@ def update_session_with_calendar(session_id: int, **kwargs) -> tuple[bool, str]:
         
         if 'start_time' in kwargs:
             start_time = kwargs.pop('start_time')
-            kwargs['start_time'] = dt.datetime.combine(session_date, start_time, tzinfo=TIMEZONE)
-            if not IS_PRODUCTION:
-                kwargs['start_time'] = kwargs['start_time'].replace(tzinfo=None)
+            # ✅ Crear con timezone y luego quitar para BD
+            start_with_tz = dt.datetime.combine(session_date, start_time, tzinfo=TIMEZONE)
+            kwargs['start_time'] = start_with_tz.replace(tzinfo=None)  # Sin timezone para BD
         
         if 'end_time' in kwargs:
             end_time = kwargs.pop('end_time') 
-            kwargs['end_time'] = dt.datetime.combine(session_date, end_time, tzinfo=TIMEZONE)
-            if not IS_PRODUCTION:
-                kwargs['end_time'] = kwargs['end_time'].replace(tzinfo=None)
+            # ✅ Crear con timezone y luego quitar para BD
+            end_with_tz = dt.datetime.combine(session_date, end_time, tzinfo=TIMEZONE)
+            kwargs['end_time'] = end_with_tz.replace(tzinfo=None)      # Sin timezone para BD
+    
+    # Convertir status string a enum si necesario
+    if 'status' in kwargs and isinstance(kwargs['status'], str):
+        kwargs['status'] = SessionStatus(kwargs['status'])
+    
+    with SessionController() as controller:
+        return controller.update_session(session_id, **kwargs)
     
     # Convertir status string a enum si necesario
     if 'status' in kwargs and isinstance(kwargs['status'], str):

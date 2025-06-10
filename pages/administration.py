@@ -291,17 +291,29 @@ def show_session_management(coach_id: Optional[int] = None, is_admin: bool = Tru
                 submit = st.form_submit_button("Save Session")
 
                 if submit:
-                    # 🔧 DEBUG: Agregar estos logs ANTES de las validaciones
-                    st.write("=" * 50)
-                    st.write("🔍 **DEBUG: DATOS DEL FORMULARIO**")
-                    st.write(f"📅 session_date: `{session_date}` (tipo: {type(session_date)})")
-                    st.write(f"🕐 start_time: `{start_time}` (tipo: {type(start_time)})")
-                    st.write(f"🕐 end_time: `{end_time}` (tipo: {type(end_time)})")
+                    # 🔧 DEBUG EN WEB - AGREGAR ESTAS LÍNEAS
+                    st.error("🔍 **DEBUG INFO (TEMPORAL)**")
+                    st.write(f"📅 session_date: `{session_date}`")
+                    st.write(f"🕐 start_time: `{start_time}`")
                     st.write(f"🌍 TIMEZONE: `{TIMEZONE}`")
                     st.write(f"🏭 IS_PRODUCTION: `{IS_PRODUCTION}`")
-                    st.write(f"⏰ Hora actual: `{dt.datetime.now()}`")
-                    st.write(f"⏰ Hora actual con TZ: `{dt.datetime.now(TIMEZONE)}`")
-
+                    
+                    # Simular lo que hace create_session_with_calendar
+                    start_datetime = dt.datetime.combine(session_date, start_time, tzinfo=TIMEZONE)
+                    end_datetime = dt.datetime.combine(session_date, end_time, tzinfo=TIMEZONE)
+                    
+                    st.write(f"🔗 start_datetime: `{start_datetime}`")
+                    st.write(f"🔗 start_datetime ISO: `{start_datetime.isoformat()}`")
+                    st.write(f"🔗 end_datetime: `{end_datetime}`")
+                    st.write(f"🔗 end_datetime ISO: `{end_datetime.isoformat()}`")
+                    
+                    if not IS_PRODUCTION:
+                        start_naive = start_datetime.replace(tzinfo=None)
+                        st.write(f"🔗 start_naive (dev): `{start_naive}`")
+                    else:
+                        st.write(f"🔗 En producción mantiene tzinfo: `{start_datetime}`")
+                    
+                    st.error("👆 ESTE DEBUG SE VERÁ EN LA WEB")
                     # Usar validaciones seguras de ValidationController
                     coach_valid, coach_error, safe_coach_id = validate_coach_selection_safe(selected_coach_id)
                     if not coach_valid:

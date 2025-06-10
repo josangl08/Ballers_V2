@@ -82,35 +82,35 @@ def calculate_event_hash(event_data: dict) -> str:
 
 
 def build_calendar_event_body(session: Session) -> dict:
-    """Devuelve el diccionario body que Calendar API espera."""
-    
-    # 🔧 DEBUG: Logs detallados
-    print(f"🔍 DEBUG BUILD CALENDAR BODY:")
-    print(f"  📊 Session ID: {session.id}")
-    print(f"  🕐 session.start_time: {session.start_time}")
-    print(f"  🕐 session.end_time: {session.end_time}")
-    print(f"  🔗 session.start_time.tzinfo: {session.start_time.tzinfo}")
-    print(f"  🔗 session.end_time.tzinfo: {session.end_time.tzinfo}")
-    print(f"  🌍 LOCAL_TZ: {LOCAL_TZ}")
-    print(f"  🌍 TIMEZONE_NAME: {TIMEZONE_NAME}")
+    """
+    Devuelve el diccionario body que Calendar API espera.
+    🔧 FIX: Maneja correctamente datetime naive de BD.
+    """
     
     COLOR = {k: v["google"] for k, v in CALENDAR_COLORS.items()}
     
-    # Método actual que estás usando
-    start = session.start_time.isoformat()
-    end = session.end_time.isoformat()
+    # 🔧 FIX: Si los datetime de BD son naive, asumir que están en TIMEZONE local
+    if session.start_time.tzinfo is None:
+        # Datetime naive - asumir que está en timezone local
+        start_local = session.start_time
+        end_local = session.end_time
+    else:
+        # Datetime con timezone - convertir a local y quitar tzinfo
+        start_local = session.start_time.astimezone(LOCAL_TZ).replace(tzinfo=None)
+        end_local = session.end_time.astimezone(LOCAL_TZ).replace(tzinfo=None)
     
-    print(f"  📤 start ISO para Google: {start}")
-    print(f"  📤 end ISO para Google: {end}")
+    # Convertir a ISO string SIN timezone info
+    start = start_local.isoformat()  # "2025-06-11T08:00:00"
+    end = end_local.isoformat()      # "2025-06-11T09:00:00"
     
-    body = {
+    return {
         "summary": (
             f"Session: {session.coach.user.name} × {session.player.user.name} "
             f"#C{session.coach_id} #P{session.player_id}"
         ),
         "description": session.notes or "",
-        "start": {"dateTime": start, "timeZone": TIMEZONE_NAME},
-        "end":   {"dateTime": end,   "timeZone": TIMEZONE_NAME},
+        "start": {"dateTime": start, "timeZone": TIMEZONE_NAME},  # timezone solo aquí
+        "end":   {"dateTime": end,   "timeZone": TIMEZONE_NAME},    # timezone solo aquí
         "colorId": COLOR[session.status.value],
         "extendedProperties": {
             "private": {
@@ -120,11 +120,6 @@ def build_calendar_event_body(session: Session) -> dict:
             }
         },
     }
-    
-    print(f"  📤 Final body start: {body['start']}")
-    print(f"  📤 Final body end: {body['end']}")
-    
-    return body
 
 
 def update_session_tracking(session: Session):
