@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {{
         slotEventOverlap: false,   // NO permite que dos eventos solapen la ranura
         eventOverlap:     false,   // idem para overlaps parciales
         locale:  "en",
-        timeZone:{current_timezone},
+        timeZone:"{current_timezone}",
         height:  {height},
         slotMinTime: "08:00:00",
         slotMaxTime: "19:00:00",
