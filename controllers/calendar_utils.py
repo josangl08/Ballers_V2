@@ -84,24 +84,24 @@ def calculate_event_hash(event_data: dict) -> str:
 def build_calendar_event_body(session: Session) -> dict:
     """
     Devuelve el diccionario body que Calendar API espera.
-    🔧 FIX: Maneja correctamente datetime naive de BD.
+    🔧 SOLUCIÓN FINAL: Siempre enviar datetime naive + timezone separado.
     """
     
     COLOR = {k: v["google"] for k, v in CALENDAR_COLORS.items()}
     
-    # 🔧 FIX: Si los datetime de BD son naive, asumir que están en TIMEZONE local
-    if session.start_time.tzinfo is None:
-        # Datetime naive - asumir que está en timezone local
-        start_local = session.start_time
-        end_local = session.end_time
-    else:
-        # Datetime con timezone - convertir a local y quitar tzinfo
+    # 🔧 SOLUCIÓN: Siempre quitar timezone del datetime
+    if session.start_time.tzinfo is not None:
+        # Si tiene timezone, convertir a local y quitar tzinfo  
         start_local = session.start_time.astimezone(LOCAL_TZ).replace(tzinfo=None)
         end_local = session.end_time.astimezone(LOCAL_TZ).replace(tzinfo=None)
+    else:
+        # Si es naive, asumir que ya está en hora local
+        start_local = session.start_time
+        end_local = session.end_time
     
-    # Convertir a ISO string SIN timezone info
-    start = start_local.isoformat()  # "2025-06-11T08:00:00"
-    end = end_local.isoformat()      # "2025-06-11T09:00:00"
+    # ✅ CRÍTICO: dateTime SIN timezone, solo la hora local
+    start = start_local.isoformat()  # "2025-06-13T08:00:00" (SIN +07:00)
+    end = end_local.isoformat()      # "2025-06-13T09:00:00" (SIN +07:00)
     
     return {
         "summary": (
@@ -109,8 +109,8 @@ def build_calendar_event_body(session: Session) -> dict:
             f"#C{session.coach_id} #P{session.player_id}"
         ),
         "description": session.notes or "",
-        "start": {"dateTime": start, "timeZone": TIMEZONE_NAME},  # timezone solo aquí
-        "end":   {"dateTime": end,   "timeZone": TIMEZONE_NAME},    # timezone solo aquí
+        "start": {"dateTime": start, "timeZone": TIMEZONE_NAME},  # ✅ Solo timezone aquí
+        "end":   {"dateTime": end,   "timeZone": TIMEZONE_NAME},    # ✅ Solo timezone aquí  
         "colorId": COLOR[session.status.value],
         "extendedProperties": {
             "private": {
