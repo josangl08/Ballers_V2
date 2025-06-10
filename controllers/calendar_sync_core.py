@@ -4,6 +4,7 @@ Núcleo de sincronización con Google Calendar.
 Maneja la sincronización bidireccional sin coordinar auto-sync ni estadísticas.
 """
 import datetime as dt
+import streamlit as st
 import logging
 import time
 import re
@@ -254,6 +255,21 @@ def sync_calendar_to_db_with_feedback() -> Tuple[int, int, int, List[Dict], List
         for i, ev in enumerate(events, 1):
             ev_id = ev["id"]
             seen_ev_ids.add(ev_id)
+
+            if ev.get("summary", "").startswith("Session:"):  # Solo para sesiones
+                st.error(f"🔍 DEBUG SYNC FROM GOOGLE:")
+                st.write(f"  📝 Event summary: {ev.get('summary', 'Sin título')}")
+                st.write(f"  📅 Raw start from Google: {ev['start']}")
+                st.write(f"  📅 Raw end from Google: {ev['end']}")
+                
+                # Ver qué produce _to_dt
+                start_dt = _to_dt(ev["start"]["dateTime"])
+                end_dt = _to_dt(ev["end"]["dateTime"])
+                
+                st.write(f"  🔗 Converted start_dt: {start_dt}")
+                st.write(f"  🔗 start_dt.tzinfo: {start_dt.tzinfo}")
+                st.write(f"  🔗 start_dt ISO: {start_dt.isoformat()}")
+                st.write("=" * 50)
             
             if i % 10 == 0:  # Log progreso cada 10 eventos
                 logger.info(f"⏳ Procesando evento {i}/{len(events)}")
