@@ -14,20 +14,31 @@ _Session: Optional[sessionmaker] = None
 def initialize_database() -> bool:
     """
     Inicializa la base de datos solo una vez al inicio de la aplicación.
-    
-    Returns:
-        bool: True si la inicialización fue exitosa, False en caso contrario
     """
     global _engine, _Session
-    
+
     try:
         if _engine is None:
-            # Usar DATABASE_URL ya procesado desde config.py
             print(f"🔗 Conectando a: {DATABASE_URL[:50]}...")
-            
-            _engine = create_engine(DATABASE_URL)
-            
-            # Solo crear tablas si es SQLite local Y no existe
+
+            # --- Creación del engine ---
+            if IS_PRODUCTION:
+                # 🔧 FIX: Quitar la configuración de timezone que está causando problemas
+                _engine = create_engine(
+                    DATABASE_URL,
+                    pool_pre_ping=True,
+                    # ❌ COMENTAR ESTA LÍNEA QUE ESTÁ CAUSANDO PROBLEMAS:
+                    # connect_args={"options": f"-c timezone={TIMEZONE_NAME}"}
+                )
+                print(f"🔧 PostgreSQL SIN configuración de timezone (manejado por la app)")
+            else:
+                # Desarrollo → SQLite (u otra BD local) sin opciones extra
+                _engine = create_engine(
+                    DATABASE_URL,
+                    pool_pre_ping=True
+                )
+
+            # --- Resto del código igual ---
             if IS_DEVELOPMENT and DATABASE_PATH:
                 if not os.path.exists(DATABASE_PATH) or os.path.getsize(DATABASE_PATH) == 0:
                     print("🔧 Creando nueva base de datos local...")
@@ -37,17 +48,17 @@ def initialize_database() -> bool:
                     print("✅ Usando base de datos local existente")
             elif IS_PRODUCTION:
                 print("✅ Conectado a base de datos de producción (Supabase)")
-            
+
             _Session = sessionmaker(bind=_engine)
             print("✅ Base de datos inicializada correctamente")
             return True
-            
+
     except Exception as e:
         print(f"❌ Error inicializando base de datos: {e}")
         _engine = None
         _Session = None
         return False
-    
+
     return True
 
 def get_db_session() -> SQLAlchemySession:
