@@ -32,14 +32,6 @@ def show_calendar(title: str, sessions, *, height: int = 650,
                   editable: bool = False, key: str = "calendar") -> None:
 
     st.subheader(title)
-    # 🔧 DEBUG: Mostrar qué datos se están enviando a FullCalendar
-    if sessions:
-        sample_session = sessions[0]
-        st.error(f"🔍 DEBUG CALENDAR: Primera sesión")
-        st.write(f"DB start_time: {sample_session.start_time}")
-        st.write(f"DB start_time.tzinfo: {sample_session.start_time.tzinfo}")
-        st.write(f"to_calendar_str result: {to_calendar_str(sample_session.start_time)}")
-        st.write(f"TIMEZONE_NAME: {TIMEZONE_NAME}")
     events = json.dumps([_to_event(s) for s in sessions], default=str)
 
     current_timezone = TIMEZONE_NAME
