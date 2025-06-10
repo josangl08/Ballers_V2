@@ -33,14 +33,20 @@ def format_time_local(dt_obj: Optional[dt.datetime]) -> str:
 
 def to_calendar_str(dt_obj: dt.datetime) -> str:
     """
-    Convierte cualquier datetime a string 'YYYY-MM-DDTHH:MM:SS'
-    en la zona activa (TIMEZONE) **sin** offset, para FullCalendar.
+    Convierte cualquier datetime a string para FullCalendar.
+    🔧 FIX: Maneja correctamente datetime naive de BD.
     """
-    if dt_obj.tzinfo:
-        dt_obj = dt_obj.astimezone(TIMEZONE)
+    if dt_obj is None:
+        return ""
+    
+    # 🔧 FIX: Si es naive, asumir que YA está en hora local correcta
+    if dt_obj.tzinfo is None:
+        # Datetime naive - ya está en la hora local correcta de BD
+        return dt_obj.strftime("%Y-%m-%dT%H:%M:%S")
     else:
-        dt_obj = dt_obj.replace(tzinfo=TIMEZONE)
-    return dt_obj.strftime("%Y-%m-%dT%H:%M:%S")
+        # Datetime con timezone - convertir a local y quitar tzinfo
+        local_dt = dt_obj.astimezone(TIMEZONE).replace(tzinfo=None)
+        return local_dt.strftime("%Y-%m-%dT%H:%M:%S")
 
 
 def normalize_datetime_for_hash(dt_obj) -> str:

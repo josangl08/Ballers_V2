@@ -33,6 +33,9 @@ def show_calendar(title: str, sessions, *, height: int = 650,
 
     st.subheader(title)
     events = json.dumps([_to_event(s) for s in sessions], default=str)
+
+    current_timezone = TIMEZONE_NAME
+
     html = f"""
 <link  href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
@@ -56,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {{
         slotEventOverlap: false,   // NO permite que dos eventos solapen la ranura
         eventOverlap:     false,   // idem para overlaps parciales
         locale:  "en",
-        timeZone:"TIMEZONE_NAME",
+        timeZone:{current_timezone},
         height:  {height},
         slotMinTime: "08:00:00",
         slotMaxTime: "19:00:00",
