@@ -8,6 +8,7 @@ import streamlit as st
 from pathlib import Path
 from dotenv import load_dotenv
 from zoneinfo import ZoneInfo
+load_dotenv()
 
 # =============================================================================
 # DETECCIÓN DE ENTORNO SIMPLIFICADA
@@ -20,8 +21,8 @@ def detect_production_environment():
     
     # Método 1: Variable ENVIRONMENT en secrets/env
     env_var = os.getenv("ENVIRONMENT", "").lower()
-    if env_var == "production":
-        return True
+    if env_var:
+        return env_var.lower() == "production"   # Devuelve True o False y se sale
     
     # Método 2: Detección por hostname (Streamlit Cloud)
     import socket

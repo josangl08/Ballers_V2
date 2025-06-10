@@ -5,22 +5,23 @@ from zoneinfo import ZoneInfo
 import streamlit as st
 import streamlit.components.v1 as components
 from models import Session
+from common.utils import to_calendar_str
 from config import CALENDAR_COLORS  
-from config import TIMEZONE
+from config import TIMEZONE, TIMEZONE_NAME
 
 HEX = {k: v["hex"] for k, v in CALENDAR_COLORS.items()}
 TZ  = TIMEZONE
 
 def _fmt_local(ts: dt.datetime) -> str:
-    """Devuelve 'YYYY-MM-DDTHH:MM:SS' sin zona."""
-    return ts.strftime("%Y-%m-%dT%H:%M:%S")
+    """ISO 8601 completo, conserva la zona (+07:00)"""
+    return ts.isoformat(timespec="seconds")
 
 def _to_event(s: Session) -> dict:
     return {
         "id":    s.id,
         "title": f"{s.coach.user.name} × {s.player.user.name}",
-        "start": _fmt_local(s.start_time),   # 13:00 «tal cual»
-        "end":   _fmt_local(s.end_time) if s.end_time else "",
+        "start": to_calendar_str(s.start_time),
+        "end":   to_calendar_str(s.end_time) if s.end_time is not None else "",
         "description": s.notes or "",
         "player": s.player.user.name,
         "coach":  s.coach.user.name,
@@ -55,7 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {{
         slotEventOverlap: false,   // NO permite que dos eventos solapen la ranura
         eventOverlap:     false,   // idem para overlaps parciales
         locale:  "en",
-        timeZone:"local",
+        timeZone:"TIMEZONE_NAME",
         height:  {height},
         slotMinTime: "08:00:00",
         slotMaxTime: "19:00:00",

@@ -10,60 +10,14 @@ import logging
 from zoneinfo import ZoneInfo
 from typing import Optional
 from models import Session, SessionStatus
+from common.utils import format_time_local, normalize_datetime_for_hash
 from config import TIMEZONE
+from config import TIMEZONE_NAME
+from config import CALENDAR_COLORS
 
 LOCAL_TZ = TIMEZONE
 logger = logging.getLogger(__name__)
 
-
-def format_time_local(dt_obj: Optional[dt.datetime]) -> str:
-    """Convierte datetime UTC a hora local Madrid para logging legible"""
-    if dt_obj is None:
-        return "None"
-        
-    # Asegurar que tiene timezone info
-    if dt_obj.tzinfo is None:
-        dt_obj = dt_obj.replace(tzinfo=dt.timezone.utc)
-    
-    # Convertir a hora de Madrid
-    local_time = dt_obj.astimezone(LOCAL_TZ)
-    return local_time.strftime('%H:%M')
-
-
-def normalize_datetime_for_hash(dt_obj) -> str:
-    """
-    Normaliza datetime para hash: convierte a UTC y quita timezone info
-    MEJORADO: Maneja correctamente datetime naive desde timezone local
-    """
-    if dt_obj is None:
-        return ""
-    
-    # Si es string, convertir a datetime primero
-    if isinstance(dt_obj, str):
-        try:
-            dt_obj = dt.datetime.fromisoformat(dt_obj.replace("Z", "+00:00"))
-        except:
-            return dt_obj  # Si falla, devolver como está
-    
-    # Lógica mejorada para datetime naive
-    if dt_obj.tzinfo is None:
-        # Asumir que datetime naive es en timezone local (Madrid)
-        try:
-            local_tz = TIMEZONE
-            dt_obj = dt_obj.replace(tzinfo=local_tz)
-            logger.debug(f"🌍 Datetime naive convertido a Madrid timezone: {dt_obj}")
-        except:
-            # Si falla ZoneInfo, usar offset fijo +02:00
-            dt_obj = dt_obj.replace(tzinfo=dt.timezone(dt.timedelta(hours=2)))
-            logger.debug(f"🌍 Datetime naive convertido a +02:00: {dt_obj}")
-    
-    # Convertir a UTC y quitar timezone info para consistencia
-    utc_naive = dt_obj.astimezone(dt.timezone.utc).replace(tzinfo=None)
-    
-    # Devolver formato ISO sin microsegundos
-    result = utc_naive.replace(microsecond=0).isoformat()
-    logger.debug(f"🔧 Normalización final: {dt_obj} → {result}")
-    return result
 
 
 def calculate_session_hash(session: Session) -> str:
@@ -131,17 +85,18 @@ def calculate_event_hash(event_data: dict) -> str:
 
 def build_calendar_event_body(session: Session) -> dict:
     """Devuelve el diccionario body que Calendar API espera."""
-    from config import CALENDAR_COLORS
-    COLOR = {k: v["google"] for k, v in CALENDAR_COLORS.items()}
     
+    COLOR = {k: v["google"] for k, v in CALENDAR_COLORS.items()}
+    start = session.start_time.isoformat()  # mantiene +07:00
+    end   = session.end_time  .isoformat()
     return {
         "summary": (
             f"Session: {session.coach.user.name} × {session.player.user.name} "
             f"#C{session.coach_id} #P{session.player_id}"
         ),
         "description": session.notes or "",
-        "start": {"dateTime": session.start_time.astimezone(dt.timezone.utc).isoformat()},
-        "end":   {"dateTime": session.end_time.astimezone(dt.timezone.utc).isoformat()},
+        "start": {"dateTime": start, "timeZone": TIMEZONE_NAME},
+        "end":   {"dateTime": end,   "timeZone": TIMEZONE_NAME},
         "colorId": COLOR[session.status.value],
         "extendedProperties": {
             "private": {

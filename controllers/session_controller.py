@@ -20,7 +20,7 @@ from .calendar_utils import (
 from googleapiclient.errors import HttpError
 from config import CALENDAR_ID  
 from controllers.validation_controller import ValidationController
-from config import TIMEZONE
+from config import TIMEZONE, IS_PRODUCTION
 
 logger = logging.getLogger(__name__)
 
@@ -620,6 +620,10 @@ def create_session_with_calendar(
     start_datetime = dt.datetime.combine(session_date, start_time, tzinfo=TIMEZONE)
     end_datetime   = dt.datetime.combine(session_date, end_time,   tzinfo=TIMEZONE)
     
+    # 👇  EN DESARROLLO (SQLite) quitamos tzinfo para evitar la conversión a UTC
+    if not IS_PRODUCTION:
+        start_datetime = start_datetime.replace(tzinfo=None)
+        end_datetime   = end_datetime.replace(tzinfo=None)
     with SessionController() as controller:
         return controller.create_session(
             coach_id=coach_id,
@@ -641,10 +645,14 @@ def update_session_with_calendar(session_id: int, **kwargs) -> tuple[bool, str]:
         if 'start_time' in kwargs:
             start_time = kwargs.pop('start_time')
             kwargs['start_time'] = dt.datetime.combine(session_date, start_time, tzinfo=TIMEZONE)
+            if not IS_PRODUCTION:
+                kwargs['start_time'] = kwargs['start_time'].replace(tzinfo=None)
         
         if 'end_time' in kwargs:
             end_time = kwargs.pop('end_time') 
             kwargs['end_time'] = dt.datetime.combine(session_date, end_time, tzinfo=TIMEZONE)
+            if not IS_PRODUCTION:
+                kwargs['end_time'] = kwargs['end_time'].replace(tzinfo=None)
     
     # Convertir status string a enum si necesario
     if 'status' in kwargs and isinstance(kwargs['status'], str):

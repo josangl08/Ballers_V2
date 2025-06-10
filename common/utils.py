@@ -22,63 +22,42 @@ def hash_password(password: str) -> str:
 
 def format_time_local(dt_obj: Optional[dt.datetime]) -> str:
     """
-    Convierte datetime UTC a hora local Madrid para logging legible.
-    
-    Args:
-        dt_obj: Datetime object (puede ser None)
-        
-    Returns:
-        str: Hora formateada en formato HH:MM o "None"
+    Devuelve la hora local (según TIMEZONE) en formato 'HH:MM'.
+    Acepta datetime naive o con tzinfo; None → "None".
     """
     if dt_obj is None:
         return "None"
-        
-    # Asegurar que tiene timezone info
     if dt_obj.tzinfo is None:
         dt_obj = dt_obj.replace(tzinfo=dt.timezone.utc)
-    
-    # Convertir a hora local
-    try:
-        local_time = dt_obj.astimezone(TIMEZONE)
-        return local_time.strftime('%H:%M')
-    except:
-        # Fallback si no funciona timezone
-        return dt_obj.strftime('%H:%M')
+    return dt_obj.astimezone(TIMEZONE).strftime("%H:%M")
+
+def to_calendar_str(dt_obj: dt.datetime) -> str:
+    """
+    Convierte cualquier datetime a string 'YYYY-MM-DDTHH:MM:SS'
+    en la zona activa (TIMEZONE) **sin** offset, para FullCalendar.
+    """
+    if dt_obj.tzinfo:
+        dt_obj = dt_obj.astimezone(TIMEZONE)
+    else:
+        dt_obj = dt_obj.replace(tzinfo=TIMEZONE)
+    return dt_obj.strftime("%Y-%m-%dT%H:%M:%S")
 
 
 def normalize_datetime_for_hash(dt_obj) -> str:
     """
-    Normaliza datetime para hash: convierte a UTC y quita timezone info.
-    
-    Args:
-        dt_obj: Datetime object o string ISO
-        
-    Returns:
-        str: Datetime normalizado en formato ISO
+    Normaliza un datetime para hashing:
+    1) lo interpreta en TIMEZONE si es naive,
+    2) lo convierte a UTC,
+    3) elimina tzinfo y microsegundos.
     """
     if dt_obj is None:
         return ""
-    
-    # Si es string, convertir a datetime primero
     if isinstance(dt_obj, str):
-        try:
-            dt_obj = dt.datetime.fromisoformat(dt_obj.replace("Z", "+00:00"))
-        except:
-            return dt_obj  # Si falla, devolver como está
-    
-    # Manejar datetime naive (asumir timezone local Madrid)
+        dt_obj = dt.datetime.fromisoformat(dt_obj.replace("Z", "+00:00"))
     if dt_obj.tzinfo is None:
-        try:
-            dt_obj = dt_obj.replace(tzinfo=TIMEZONE)
-        except:
-            # Fallback: usar offset configurado
-            dt_obj = dt_obj.replace(tzinfo=dt.timezone(dt.timedelta(hours=UTC_OFFSET_HOURS)))
-    
-    # Convertir a UTC y quitar timezone info para consistencia
-    utc_naive = dt_obj.astimezone(dt.timezone.utc).replace(tzinfo=None)
-    
-    # Devolver formato ISO sin microsegundos
-    return utc_naive.replace(microsecond=0).isoformat()
+        dt_obj = dt_obj.replace(tzinfo=TIMEZONE)
+    utc_naive = dt_obj.astimezone(dt.timezone.utc).replace(tzinfo=None, microsecond=0)
+    return utc_naive.isoformat()
 
 def app_health_check() -> dict:
     """
