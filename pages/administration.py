@@ -21,7 +21,7 @@ from controllers.validation_controller import (
     get_edit_session_hours,
     check_session_time_recommendation
 )
-from config import TIMEZONE
+from config import TIMEZONE, IS_PRODUCTION
 
 # Agregar la ruta raíz al path de Python para importar config
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -292,15 +292,15 @@ def show_session_management(coach_id: Optional[int] = None, is_admin: bool = Tru
 
                 if submit:
                     # 🔧 DEBUG: Agregar estos logs ANTES de las validaciones
-                    print(f"🔍 DEBUG FORM SUBMIT:")
-                    print(f"  👤 selected_coach_id: {selected_coach_id}")
-                    print(f"  👤 player_id: {player_id}")
-                    print(f"  📅 session_date: {session_date} (type: {type(session_date)})")
-                    print(f"  🕐 start_time: {start_time} (type: {type(start_time)})")
-                    print(f"  🕐 end_time: {end_time} (type: {type(end_time)})")
-                    print(f"  🌍 Timezone actual: {TIMEZONE}")
-                    print(f"  ⏰ Hora actual sistema: {dt.datetime.now()}")
-                    print(f"  ⏰ Hora actual con TZ: {dt.datetime.now(TIMEZONE)}")
+                    st.write("=" * 50)
+                    st.write("🔍 **DEBUG: DATOS DEL FORMULARIO**")
+                    st.write(f"📅 session_date: `{session_date}` (tipo: {type(session_date)})")
+                    st.write(f"🕐 start_time: `{start_time}` (tipo: {type(start_time)})")
+                    st.write(f"🕐 end_time: `{end_time}` (tipo: {type(end_time)})")
+                    st.write(f"🌍 TIMEZONE: `{TIMEZONE}`")
+                    st.write(f"🏭 IS_PRODUCTION: `{IS_PRODUCTION}`")
+                    st.write(f"⏰ Hora actual: `{dt.datetime.now()}`")
+                    st.write(f"⏰ Hora actual con TZ: `{dt.datetime.now(TIMEZONE)}`")
 
                     # Usar validaciones seguras de ValidationController
                     coach_valid, coach_error, safe_coach_id = validate_coach_selection_safe(selected_coach_id)
