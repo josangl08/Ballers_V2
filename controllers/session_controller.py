@@ -309,13 +309,28 @@ class SessionController:
         🔧 CORREGIDO: Actualiza correctamente los campos de tracking después de creación exitosa.
         """
         try:
+            print(f"🔍 DEBUG PUSH TO CALENDAR:")
+            print(f"  📊 Session ID: {session.id}")
+            print(f"  🕐 session.start_time antes de build_body: {session.start_time}")
+            print(f"  🕐 session.end_time antes de build_body: {session.end_time}")
             
             body = build_calendar_event_body(session)
+            
+            print(f"  📤 Body generado para Google Calendar:")
+            print(f"    📅 start: {body['start']}")
+            print(f"    📅 end: {body['end']}")
+            print(f"    📝 summary: {body['summary']}")
+            
             event = calendar().events().insert(
-                calendarId=CALENDAR_ID,  # 🔧 USAR CALENDAR_ID DESDE CONFIG
+                calendarId=CALENDAR_ID,
                 body=body
             ).execute()
-            print("DEBUG body insert:", body)
+            
+            print(f"  ✅ Evento creado en Google Calendar:")
+            print(f"    🆔 Event ID: {event['id']}")
+            print(f"    📅 Event start: {event.get('start', {})}")
+            print(f"    📅 Event end: {event.get('end', {})}")
+            
             # Actualizar calendar_event_id
             session.calendar_event_id = event["id"]
             
@@ -330,6 +345,7 @@ class SessionController:
             return True
             
         except Exception as e:
+            print(f"❌ ERROR en _push_session_to_calendar: {e}")
             logger.error(f"❌ Error creando evento en Calendar: {e}")
             return False
     
@@ -615,9 +631,22 @@ def create_session_with_calendar(
 ) -> tuple[bool, str, Optional[Session]]:
     """Función de conveniencia para crear sesión con sincronización."""
     
+    # 🔧 DEBUG: Logs detallados
+    print(f"🔍 DEBUG CREATE SESSION:")
+    print(f"  📅 Input date: {session_date}")
+    print(f"  🕐 Input start_time: {start_time}")
+    print(f"  🕐 Input end_time: {end_time}")
+    print(f"  🌍 TIMEZONE: {TIMEZONE}")
+    print(f"  🏭 IS_PRODUCTION: {IS_PRODUCTION}")
+
     # Combinar date + time para crear datetimes
     start_datetime = dt.datetime.combine(session_date, start_time, tzinfo=TIMEZONE)
     end_datetime   = dt.datetime.combine(session_date, end_time,   tzinfo=TIMEZONE)
+
+    print(f"  🔗 start_datetime (with tz): {start_datetime}")
+    print(f"  🔗 end_datetime (with tz): {end_datetime}")
+    print(f"  🔗 start_datetime ISO: {start_datetime.isoformat()}")
+    print(f"  🔗 end_datetime ISO: {end_datetime.isoformat()}")
     
     # 👇  EN DESARROLLO (SQLite) quitamos tzinfo para evitar la conversión a UTC
     if not IS_PRODUCTION:

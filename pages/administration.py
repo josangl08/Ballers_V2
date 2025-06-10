@@ -21,6 +21,7 @@ from controllers.validation_controller import (
     get_edit_session_hours,
     check_session_time_recommendation
 )
+from config import TIMEZONE
 
 # Agregar la ruta raíz al path de Python para importar config
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -290,6 +291,17 @@ def show_session_management(coach_id: Optional[int] = None, is_admin: bool = Tru
                 submit = st.form_submit_button("Save Session")
 
                 if submit:
+                    # 🔧 DEBUG: Agregar estos logs ANTES de las validaciones
+                    print(f"🔍 DEBUG FORM SUBMIT:")
+                    print(f"  👤 selected_coach_id: {selected_coach_id}")
+                    print(f"  👤 player_id: {player_id}")
+                    print(f"  📅 session_date: {session_date} (type: {type(session_date)})")
+                    print(f"  🕐 start_time: {start_time} (type: {type(start_time)})")
+                    print(f"  🕐 end_time: {end_time} (type: {type(end_time)})")
+                    print(f"  🌍 Timezone actual: {TIMEZONE}")
+                    print(f"  ⏰ Hora actual sistema: {dt.datetime.now()}")
+                    print(f"  ⏰ Hora actual con TZ: {dt.datetime.now(TIMEZONE)}")
+
                     # Usar validaciones seguras de ValidationController
                     coach_valid, coach_error, safe_coach_id = validate_coach_selection_safe(selected_coach_id)
                     if not coach_valid:
