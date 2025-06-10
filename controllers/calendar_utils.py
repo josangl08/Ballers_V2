@@ -10,9 +10,10 @@ import logging
 from zoneinfo import ZoneInfo
 from typing import Optional
 from models import Session, SessionStatus
+from config import TIMEZONE
 
+LOCAL_TZ = TIMEZONE
 logger = logging.getLogger(__name__)
-LOCAL_TZ = ZoneInfo("Europe/Madrid")
 
 
 def format_time_local(dt_obj: Optional[dt.datetime]) -> str:
@@ -48,7 +49,7 @@ def normalize_datetime_for_hash(dt_obj) -> str:
     if dt_obj.tzinfo is None:
         # Asumir que datetime naive es en timezone local (Madrid)
         try:
-            local_tz = ZoneInfo("Europe/Madrid")
+            local_tz = TIMEZONE
             dt_obj = dt_obj.replace(tzinfo=local_tz)
             logger.debug(f"🌍 Datetime naive convertido a Madrid timezone: {dt_obj}")
         except:

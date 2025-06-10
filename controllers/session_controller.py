@@ -20,6 +20,7 @@ from .calendar_utils import (
 from googleapiclient.errors import HttpError
 from config import CALENDAR_ID  # 🔧 IMPORTAR DESDE CONFIG
 from controllers.validation_controller import ValidationController
+from config import TIMEZONE
 
 logger = logging.getLogger(__name__)
 
@@ -273,8 +274,7 @@ class SessionController:
         
         try:
             
-            madrid_tz = ZoneInfo("Europe/Madrid")
-            now = dt.datetime.now(madrid_tz)
+            now = dt.datetime.now(TIMEZONE)
             sessions_to_update = self.db.query(Session).filter(
                 Session.status == SessionStatus.SCHEDULED,
                 Session.end_time <= now

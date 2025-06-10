@@ -29,10 +29,11 @@ from .calendar_utils import (
     build_calendar_event_body,
     status_from_color
 )
+from config import TIMEZONE, UTC_OFFSET_HOURS
 from config import CALENDAR_COLORS, CALENDAR_ID
 
 logger = logging.getLogger(__name__)
-LOCAL_TZ = dt.timezone(dt.timedelta(hours=2))  # Madrid timezone simplificado
+LOCAL_TZ = dt.timezone(dt.timedelta(hours=UTC_OFFSET_HOURS))
 
 def guess_coach_player_ids(event: dict) -> Tuple[Optional[int], Optional[int]]:
     """

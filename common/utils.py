@@ -5,6 +5,7 @@ Funciones reutilizables que no dependen de UI específica.
 import hashlib
 import datetime as dt
 from typing import Optional
+from config import TIMEZONE, UTC_OFFSET_HOURS
 
 def hash_password(password: str) -> str:
     """
@@ -36,14 +37,12 @@ def format_time_local(dt_obj: Optional[dt.datetime]) -> str:
     if dt_obj.tzinfo is None:
         dt_obj = dt_obj.replace(tzinfo=dt.timezone.utc)
     
-    # Convertir a hora de Madrid
-    from zoneinfo import ZoneInfo
+    # Convertir a hora local
     try:
-        local_tz = ZoneInfo("Europe/Madrid")
-        local_time = dt_obj.astimezone(local_tz)
+        local_time = dt_obj.astimezone(TIMEZONE)
         return local_time.strftime('%H:%M')
     except:
-        # Fallback si no funciona ZoneInfo
+        # Fallback si no funciona timezone
         return dt_obj.strftime('%H:%M')
 
 
@@ -70,12 +69,10 @@ def normalize_datetime_for_hash(dt_obj) -> str:
     # Manejar datetime naive (asumir timezone local Madrid)
     if dt_obj.tzinfo is None:
         try:
-            from zoneinfo import ZoneInfo
-            local_tz = ZoneInfo("Europe/Madrid")
-            dt_obj = dt_obj.replace(tzinfo=local_tz)
+            dt_obj = dt_obj.replace(tzinfo=TIMEZONE)
         except:
-            # Fallback: usar offset fijo +02:00
-            dt_obj = dt_obj.replace(tzinfo=dt.timezone(dt.timedelta(hours=2)))
+            # Fallback: usar offset configurado
+            dt_obj = dt_obj.replace(tzinfo=dt.timezone(dt.timedelta(hours=UTC_OFFSET_HOURS)))
     
     # Convertir a UTC y quitar timezone info para consistencia
     utc_naive = dt_obj.astimezone(dt.timezone.utc).replace(tzinfo=None)

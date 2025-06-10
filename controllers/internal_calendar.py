@@ -6,9 +6,10 @@ import streamlit as st
 import streamlit.components.v1 as components
 from models import Session
 from config import CALENDAR_COLORS  
+from config import TIMEZONE
 
 HEX = {k: v["hex"] for k, v in CALENDAR_COLORS.items()}
-TZ  = ZoneInfo("Europe/Madrid")
+TZ  = TIMEZONE
 
 def _fmt_local(ts: dt.datetime) -> str:
     """Devuelve 'YYYY-MM-DDTHH:MM:SS' sin zona."""

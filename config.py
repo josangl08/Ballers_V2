@@ -7,6 +7,7 @@ import datetime as dt
 import streamlit as st
 from pathlib import Path
 from dotenv import load_dotenv
+from zoneinfo import ZoneInfo
 
 # =============================================================================
 # DETECCIÓN DE ENTORNO SIMPLIFICADA
@@ -162,6 +163,22 @@ SESSION_DURATION = {
     "max_minutes": 120,
     "max_minutes_import": 180
 }
+
+
+
+# Zona horaria de la aplicación
+if IS_PRODUCTION:
+    # Producción: Tailandia
+    TIMEZONE = ZoneInfo("Asia/Bangkok")
+    TIMEZONE_NAME = "Asia/Bangkok"
+    UTC_OFFSET_HOURS = 7
+else:
+    # Desarrollo: España
+    TIMEZONE = ZoneInfo("Europe/Madrid")
+    TIMEZONE_NAME = "Europe/Madrid"
+    UTC_OFFSET_HOURS = 2  # Aproximado, varía con DST
+
+print(f"🌍 Timezone: {TIMEZONE_NAME} (UTC+{UTC_OFFSET_HOURS})")
 
 def log_config_info():
     """Muestra información de configuración al inicio."""
