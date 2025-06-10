@@ -7,7 +7,7 @@ import datetime as dt
 import logging
 from typing import List, Optional, Dict, Tuple
 from sqlalchemy.orm import Session as SQLSession
-from zoneinfo import ZoneInfo
+
 from models import Session, SessionStatus, Coach, Player, User
 from controllers.db import get_db_session
 from controllers.google_client import calendar
@@ -18,7 +18,7 @@ from .calendar_utils import (
     session_needs_update
 )
 from googleapiclient.errors import HttpError
-from config import CALENDAR_ID  # 🔧 IMPORTAR DESDE CONFIG
+from config import CALENDAR_ID  
 from controllers.validation_controller import ValidationController
 from config import TIMEZONE
 
@@ -455,8 +455,8 @@ class SessionController:
         if not self.db:
             raise RuntimeError("Controller debe usarse como context manager")
         
-        start_datetime = dt.datetime.combine(start_date, dt.time.min)
-        end_datetime = dt.datetime.combine(end_date, dt.time.max)
+        start_datetime = dt.datetime.combine(start_date, dt.time.min, tzinfo=TIMEZONE)
+        end_datetime   = dt.datetime.combine(end_date,   dt.time.max, tzinfo=TIMEZONE)
         
         # Convertir status strings a enums si se proporcionan
         status_enums = None
@@ -617,8 +617,8 @@ def create_session_with_calendar(
     """Función de conveniencia para crear sesión con sincronización."""
     
     # Combinar date + time para crear datetimes
-    start_datetime = dt.datetime.combine(session_date, start_time)
-    end_datetime = dt.datetime.combine(session_date, end_time)
+    start_datetime = dt.datetime.combine(session_date, start_time, tzinfo=TIMEZONE)
+    end_datetime   = dt.datetime.combine(session_date, end_time,   tzinfo=TIMEZONE)
     
     with SessionController() as controller:
         return controller.create_session(
@@ -632,7 +632,7 @@ def create_session_with_calendar(
         )
 
 def update_session_with_calendar(session_id: int, **kwargs) -> tuple[bool, str]:
-    """Función de conveniencia para actualizar sesión con sincronización - CORREGIDA."""
+    """Función de conveniencia para actualizar sesión con sincronización"""
     
     # Convertir date + time a datetime antes de enviar al controller
     if 'session_date' in kwargs and ('start_time' in kwargs or 'end_time' in kwargs):
@@ -640,13 +640,13 @@ def update_session_with_calendar(session_id: int, **kwargs) -> tuple[bool, str]:
         
         if 'start_time' in kwargs:
             start_time = kwargs.pop('start_time')
-            kwargs['start_time'] = dt.datetime.combine(session_date, start_time)
+            kwargs['start_time'] = dt.datetime.combine(session_date, start_time, tzinfo=TIMEZONE)
         
         if 'end_time' in kwargs:
             end_time = kwargs.pop('end_time') 
-            kwargs['end_time'] = dt.datetime.combine(session_date, end_time)
+            kwargs['end_time'] = dt.datetime.combine(session_date, end_time, tzinfo=TIMEZONE)
     
-    # 🔧 FIX: Convertir status string a enum si necesario
+    # Convertir status string a enum si necesario
     if 'status' in kwargs and isinstance(kwargs['status'], str):
         kwargs['status'] = SessionStatus(kwargs['status'])
     

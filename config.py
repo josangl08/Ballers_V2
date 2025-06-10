@@ -193,18 +193,18 @@ SESSION_DURATION = {
 
 
 # Zona horaria de la aplicación
-#if IS_PRODUCTION:
+if IS_PRODUCTION:
     # Producción: Tailandia
-TIMEZONE = ZoneInfo("Asia/Bangkok")
-TIMEZONE_NAME = "Asia/Bangkok"
-UTC_OFFSET_HOURS = 7
-print("🇹🇭 Configurando timezone para Tailandia (Asia/Bangkok)")
-#else:
+    TIMEZONE = ZoneInfo("Asia/Bangkok")
+    TIMEZONE_NAME = "Asia/Bangkok"
+    UTC_OFFSET_HOURS = 7
+    print("🇹🇭 Configurando timezone para Tailandia (Asia/Bangkok)")
+else:
     # Desarrollo: España
-    #TIMEZONE = ZoneInfo("Europe/Madrid")
-    #TIMEZONE_NAME = "Europe/Madrid"
-    #UTC_OFFSET_HOURS = 2  # Aproximado, varía con DST
-    #print("🇪🇸 Configurando timezone para España (Europe/Madrid)")
+    TIMEZONE = ZoneInfo("Europe/Madrid")
+    TIMEZONE_NAME = "Europe/Madrid"
+    UTC_OFFSET_HOURS = 2  # Aproximado, varía con DST
+    print("🇪🇸 Configurando timezone para España (Europe/Madrid)")
 
 print(f"🌍 Timezone activo: {TIMEZONE_NAME} (UTC+{UTC_OFFSET_HOURS})")
 
