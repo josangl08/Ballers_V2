@@ -8,6 +8,9 @@ import streamlit as st
 from pathlib import Path
 from dotenv import load_dotenv
 from zoneinfo import ZoneInfo
+import logging
+
+logger = logging.getLogger(__name__)
 load_dotenv()
 
 # =============================================================================
@@ -219,12 +222,12 @@ def log_config_info():
     env_name = "PRODUCTION" if IS_PRODUCTION else "DEVELOPMENT"
     db_type = "PostgreSQL (Supabase)" if IS_PRODUCTION else "SQLite (Local)"
     
-    print("="*60)
-    print(f"🚀 Ballers App - {env_name}")
-    print(f"💾 Database: {db_type}")
-    print(f"🌍 Timezone: {TIMEZONE_NAME} (UTC+{UTC_OFFSET_HOURS})")
-    print(f"📅 Calendar: {CALENDAR_ID}")
-    print(f"📊 Sheet: {ACCOUNTING_SHEET_ID}")
-    print(f"🔐 Debug: {DEBUG}")
-    print(f"⏰ Hora actual: {dt.datetime.now(TIMEZONE).strftime('%H:%M:%S %Z')}")
-    print("="*60)
+    logger.info("="*60)
+    logger.info(f"🚀 Ballers App - {env_name}")
+    logger.info(f"💾 Database: {db_type}")
+    logger.info(f"🌍 Timezone: {TIMEZONE_NAME} (UTC+{UTC_OFFSET_HOURS})")
+    logger.info(f"📅 Calendar: {CALENDAR_ID}")
+    logger.info(f"📊 Sheet: {ACCOUNTING_SHEET_ID}")
+    logger.info(f"🔐 Debug: {DEBUG}")
+    logger.info(f"⏰ Hora actual: {dt.datetime.now(TIMEZONE).strftime('%H:%M:%S %Z')}")
+    logger.info("="*60)

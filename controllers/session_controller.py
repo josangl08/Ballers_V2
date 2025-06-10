@@ -309,27 +309,27 @@ class SessionController:
         🔧 CORREGIDO: Actualiza correctamente los campos de tracking después de creación exitosa.
         """
         try:
-            print(f"🔍 DEBUG PUSH TO CALENDAR:")
-            print(f"  📊 Session ID: {session.id}")
-            print(f"  🕐 session.start_time antes de build_body: {session.start_time}")
-            print(f"  🕐 session.end_time antes de build_body: {session.end_time}")
+            logger.debug(f"🔍 DEBUG PUSH TO CALENDAR:")
+            logger.debug(f"  📊 Session ID: {session.id}")
+            logger.debug(f"  🕐 session.start_time antes de build_body: {session.start_time}")
+            logger.debug(f"  🕐 session.end_time antes de build_body: {session.end_time}")
             
             body = build_calendar_event_body(session)
             
-            print(f"  📤 Body generado para Google Calendar:")
-            print(f"    📅 start: {body['start']}")
-            print(f"    📅 end: {body['end']}")
-            print(f"    📝 summary: {body['summary']}")
+            logger.debug(f"  📤 Body generado para Google Calendar:")
+            logger.debug(f"    📅 start: {body['start']}")
+            logger.debug(f"    📅 end: {body['end']}")
+            logger.debug(f"    📝 summary: {body['summary']}")
             
             event = calendar().events().insert(
                 calendarId=CALENDAR_ID,
                 body=body
             ).execute()
             
-            print(f"  ✅ Evento creado en Google Calendar:")
-            print(f"    🆔 Event ID: {event['id']}")
-            print(f"    📅 Event start: {event.get('start', {})}")
-            print(f"    📅 Event end: {event.get('end', {})}")
+            logger.debug(f"  ✅ Evento creado en Google Calendar:")
+            logger.debug(f"    🆔 Event ID: {event['id']}")
+            logger.debug(f"    📅 Event start: {event.get('start', {})}")
+            logger.debug(f"    📅 Event end: {event.get('end', {})}")
             
             # Actualizar calendar_event_id
             session.calendar_event_id = event["id"]

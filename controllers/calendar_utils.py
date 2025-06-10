@@ -99,7 +99,7 @@ def build_calendar_event_body(session: Session) -> dict:
         start_local = session.start_time
         end_local = session.end_time
     
-    # ✅ CRÍTICO: dateTime SIN timezone, solo la hora local
+    # CRÍTICO: dateTime SIN timezone, solo la hora local
     start = start_local.isoformat()  # "2025-06-13T08:00:00" (SIN +07:00)
     end = end_local.isoformat()      # "2025-06-13T09:00:00" (SIN +07:00)
     
@@ -109,8 +109,8 @@ def build_calendar_event_body(session: Session) -> dict:
             f"#C{session.coach_id} #P{session.player_id}"
         ),
         "description": session.notes or "",
-        "start": {"dateTime": start, "timeZone": TIMEZONE_NAME},  # ✅ Solo timezone aquí
-        "end":   {"dateTime": end,   "timeZone": TIMEZONE_NAME},    # ✅ Solo timezone aquí  
+        "start": {"dateTime": start, "timeZone": TIMEZONE_NAME},  #  Solo timezone aquí
+        "end":   {"dateTime": end,   "timeZone": TIMEZONE_NAME},    # Solo timezone aquí  
         "colorId": COLOR[session.status.value],
         "extendedProperties": {
             "private": {
